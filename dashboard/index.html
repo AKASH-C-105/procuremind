@@ -1,0 +1,3136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ProcureMind 2.0 — AI Procurement Co-Pilot</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #04070d;
+      --s1: #080f1a;
+      --s2: #0c1624;
+      --border: #142035;
+      --border2: #1e3050;
+      --cyan: #00d4ff;
+      --cyan2: #00a8cc;
+      --violet: #8b5cf6;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --text: #e8f0fe;
+      --muted: #4a6580;
+      --muted2: #2a3f55;
+      --fh: 'Orbitron', monospace;
+      --fb: 'DM Sans', sans-serif;
+      --fm: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    html {
+      scroll-behavior: smooth
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--fb);
+      min-height: 100vh;
+      overflow-x: hidden
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--s1)
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 2px
+    }
+
+    /* BG EFFECTS */
+    .bg-orbs {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: .12
+    }
+
+    .orb1 {
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, #00d4ff, transparent);
+      top: -100px;
+      left: -100px;
+      animation: orbFloat 20s ease-in-out infinite
+    }
+
+    .orb2 {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, #8b5cf6, transparent);
+      bottom: -100px;
+      right: -100px;
+      animation: orbFloat 25s ease-in-out infinite reverse
+    }
+
+    .orb3 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, #10b981, transparent);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation: orbFloat 15s ease-in-out infinite 5s
+    }
+
+    @keyframes orbFloat {
+
+      0%,
+      100% {
+        transform: translate(0, 0)
+      }
+
+      33% {
+        transform: translate(30px, -20px)
+      }
+
+      66% {
+        transform: translate(-20px, 30px)
+      }
+    }
+
+    /* GRID OVERLAY */
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: .3
+    }
+
+    /* TOPBAR */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 20px;
+      background: rgba(4, 7, 13, .9);
+      backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--border)
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      flex-shrink: 0
+    }
+
+    .logo-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      box-shadow: 0 0 20px rgba(0, 212, 255, .35)
+    }
+
+    .logo-text {
+      font-family: var(--fh);
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: .05em;
+      background: linear-gradient(90deg, var(--cyan), var(--violet));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text
+    }
+
+    .logo-ver {
+      font-size: 9px;
+      font-family: var(--fm);
+      color: var(--violet);
+      margin-left: 2px;
+      -webkit-text-fill-color: var(--violet)
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      margin-left: 20px
+    }
+
+    .nav-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: var(--fb);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all .2s;
+      border-bottom: 2px solid transparent;
+      letter-spacing: .02em
+    }
+
+    .nav-btn:hover {
+      color: var(--text)
+    }
+
+    .nav-btn.active {
+      color: var(--cyan);
+      border-bottom-color: var(--cyan)
+    }
+
+    .topbar-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .live-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: rgba(16, 185, 129, .1);
+      border: 1px solid rgba(16, 185, 129, .3);
+      font-size: 11px;
+      color: var(--green);
+      font-family: var(--fm)
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 1.5s infinite
+    }
+
+    .tag {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-family: var(--fm);
+      letter-spacing: .03em
+    }
+
+    /* LAYOUT */
+    .layout {
+      display: flex;
+      height: calc(100vh - 58px);
+      position: relative;
+      z-index: 1
+    }
+
+    .sidebar {
+      width: 220px;
+      border-right: 1px solid var(--border);
+      background: rgba(8, 15, 26, .7);
+      padding: 20px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex-shrink: 0;
+      overflow-y: auto
+    }
+
+    .sidebar-section {
+      padding: 0 14px;
+      margin-bottom: 4px
+    }
+
+    .sidebar-label {
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: .12em;
+      font-family: var(--fm);
+      text-transform: uppercase;
+      padding: 10px 14px 4px
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      border-radius: 8px;
+      margin: 0 6px;
+      cursor: pointer;
+      transition: all .15s;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      border: 1px solid transparent
+    }
+
+    .sidebar-item:hover {
+      background: var(--s2);
+      color: var(--text)
+    }
+
+    .sidebar-item.active {
+      background: rgba(0, 212, 255, .08);
+      color: var(--cyan);
+      border-color: rgba(0, 212, 255, .2)
+    }
+
+    .sidebar-item .icon {
+      font-size: 14px;
+      width: 20px;
+      text-align: center
+    }
+
+    .sidebar-item .badge {
+      margin-left: auto;
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-family: var(--fm)
+    }
+
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden
+    }
+
+    .page {
+      display: none;
+      padding: 28px 32px
+    }
+
+    .page.active {
+      display: block
+    }
+
+    /* CARDS */
+    .card {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      pointer-events: none;
+      background: linear-gradient(135deg, rgba(255, 255, 255, .02) 0%, transparent 60%)
+    }
+
+    .card-sm {
+      padding: 16px
+    }
+
+    .card-glow-cyan {
+      border-color: rgba(0, 212, 255, .25);
+      box-shadow: 0 0 30px rgba(0, 212, 255, .06)
+    }
+
+    .card-glow-violet {
+      border-color: rgba(139, 92, 246, .25);
+      box-shadow: 0 0 30px rgba(139, 92, 246, .06)
+    }
+
+    .card-glow-green {
+      border-color: rgba(16, 185, 129, .25);
+      box-shadow: 0 0 30px rgba(16, 185, 129, .06)
+    }
+
+    .card-glow-amber {
+      border-color: rgba(245, 158, 11, .25);
+      box-shadow: 0 0 30px rgba(245, 158, 11, .06)
+    }
+
+    /* GRIDS */
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px
+    }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px
+    }
+
+    .grid4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px
+    }
+
+    .grid5 {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px
+    }
+
+    /* STAT CARDS */
+    .stat-card {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .2s
+    }
+
+    .stat-card:hover {
+      border-color: var(--border2)
+    }
+
+    .stat-icon {
+      font-size: 28px;
+      opacity: .15;
+      position: absolute;
+      top: 12px;
+      right: 14px
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      font-family: var(--fm)
+    }
+
+    .stat-val {
+      font-family: var(--fh);
+      font-size: 22px;
+      font-weight: 900;
+      line-height: 1
+    }
+
+    .stat-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 5px
+    }
+
+    /* TABLES */
+    .table-wrap {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden
+    }
+
+    .table-head {
+      background: rgba(20, 32, 53, .8);
+      display: grid;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .table-row {
+      display: grid;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      transition: background .12s;
+      cursor: pointer
+    }
+
+    .table-row:last-child {
+      border-bottom: none
+    }
+
+    .table-row:hover {
+      background: var(--s2)
+    }
+
+    .table-row.selected {
+      background: rgba(0, 212, 255, .04) !important;
+      border-left: 2px solid var(--cyan)
+    }
+
+    .th {
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      font-family: var(--fm)
+    }
+
+    .td {
+      font-size: 12px;
+      font-family: var(--fm);
+      display: flex;
+      align-items: center
+    }
+
+    /* PROGRESS BARS */
+    .bar-track {
+      background: var(--s2);
+      border-radius: 4px;
+      overflow: hidden
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width .8s cubic-bezier(.4, 0, .2, 1)
+    }
+
+    /* BADGES */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 9px;
+      border-radius: 20px;
+      font-size: 10px;
+      letter-spacing: .04em;
+      font-family: var(--fm);
+      font-weight: 600
+    }
+
+    .badge-cyan {
+      background: rgba(0, 212, 255, .1);
+      border: 1px solid rgba(0, 212, 255, .3);
+      color: var(--cyan)
+    }
+
+    .badge-green {
+      background: rgba(16, 185, 129, .1);
+      border: 1px solid rgba(16, 185, 129, .3);
+      color: var(--green)
+    }
+
+    .badge-amber {
+      background: rgba(245, 158, 11, .1);
+      border: 1px solid rgba(245, 158, 11, .3);
+      color: var(--amber)
+    }
+
+    .badge-red {
+      background: rgba(239, 68, 68, .1);
+      border: 1px solid rgba(239, 68, 68, .3);
+      color: var(--red)
+    }
+
+    .badge-violet {
+      background: rgba(139, 92, 246, .1);
+      border: 1px solid rgba(139, 92, 246, .3);
+      color: var(--violet)
+    }
+
+    .badge-muted {
+      background: rgba(74, 101, 128, .1);
+      border: 1px solid rgba(74, 101, 128, .3);
+      color: var(--muted)
+    }
+
+    /* FORM */
+    .form-group {
+      margin-bottom: 14px
+    }
+
+    .form-label {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      font-family: var(--fm);
+      display: block;
+      margin-bottom: 5px
+    }
+
+    .form-input {
+      width: 100%;
+      background: var(--s2);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-family: var(--fb);
+      transition: border-color .2s;
+      outline: none
+    }
+
+    .form-input:focus {
+      border-color: var(--cyan)
+    }
+
+    .form-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%234a6580' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px
+    }
+
+    /* BUTTONS */
+    .btn {
+      padding: 10px 22px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: var(--fb);
+      font-weight: 600;
+      font-size: 13px;
+      transition: all .2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      color: #04070d;
+      box-shadow: 0 4px 20px rgba(0, 212, 255, .3)
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 28px rgba(0, 212, 255, .4)
+    }
+
+    .btn-primary:disabled {
+      background: var(--s2);
+      color: var(--muted);
+      box-shadow: none;
+      transform: none;
+      cursor: not-allowed
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--muted)
+    }
+
+    .btn-outline:hover {
+      border-color: var(--cyan);
+      color: var(--cyan)
+    }
+
+    .btn-sm {
+      padding: 6px 14px;
+      font-size: 11px;
+      border-radius: 7px
+    }
+
+    .btn-full {
+      width: 100%;
+      justify-content: center
+    }
+
+    /* SECTIONS */
+    .section-title {
+      font-family: var(--fh);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: .06em;
+      margin-bottom: 4px
+    }
+
+    .section-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 20px
+    }
+
+    /* ANIMATIONS */
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .3
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(14px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0
+      }
+
+      to {
+        opacity: 1
+      }
+    }
+
+    @keyframes scan {
+      0% {
+        transform: translateY(-100%)
+      }
+
+      100% {
+        transform: translateY(400px)
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0
+      }
+    }
+
+    @keyframes shimmer {
+      0% {
+        background-position: 200% center
+      }
+
+      100% {
+        background-position: -200% center
+      }
+    }
+
+    @keyframes countUp {
+      from {
+        opacity: 0;
+        transform: scale(.8)
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1)
+      }
+    }
+
+    .su {
+      animation: slideUp .4s ease forwards
+    }
+
+    .fi {
+      animation: fadeIn .3s ease forwards
+    }
+
+    .count-anim {
+      animation: countUp .5s ease forwards
+    }
+
+    /* NEGOTIATION LIVE FEED */
+    .neg-feed {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden
+    }
+
+    .neg-feed-header {
+      background: rgba(20, 32, 53, .8);
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .neg-ticker {
+      padding: 10px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-height: 320px;
+      overflow-y: auto
+    }
+
+    .neg-msg {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      animation: slideUp .3s ease
+    }
+
+    .neg-msg:last-child {
+      border-bottom: none
+    }
+
+    .neg-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+      font-weight: 700;
+      font-family: var(--fm)
+    }
+
+    .neg-content {
+      flex: 1;
+      min-width: 0
+    }
+
+    .neg-name {
+      font-size: 10px;
+      font-weight: 600;
+      margin-bottom: 2px;
+      font-family: var(--fm);
+      letter-spacing: .04em
+    }
+
+    .neg-text {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.5
+    }
+
+    .neg-price {
+      font-family: var(--fm);
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 3px
+    }
+
+    /* DIGITAL TWIN */
+    .twin-scenarios {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px
+    }
+
+    .scenario-card {
+      background: var(--s2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all .2s
+    }
+
+    .scenario-card:hover {
+      border-color: var(--border2)
+    }
+
+    .scenario-card.active {
+      border-color: var(--cyan);
+      background: rgba(0, 212, 255, .05)
+    }
+
+    .scenario-card.best {
+      border-color: var(--green);
+      background: rgba(16, 185, 129, .05)
+    }
+
+    /* RADAR */
+    .radar-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      max-width: 260px;
+      margin: 0 auto
+    }
+
+    /* COMM LOG */
+    .comm-bubble {
+      max-width: 72%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      margin-bottom: 8px;
+      font-size: 11px;
+      line-height: 1.55;
+      animation: slideUp .25s ease
+    }
+
+    .comm-bubble.ai {
+      background: rgba(0, 212, 255, .08);
+      border: 1px solid rgba(0, 212, 255, .2);
+      border-radius: 12px 12px 12px 2px;
+      margin-right: auto
+    }
+
+    .comm-bubble.carrier {
+      border-radius: 12px 12px 2px 12px;
+      margin-left: auto
+    }
+
+    .comm-meta {
+      font-size: 9px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      font-family: var(--fm);
+      letter-spacing: .04em
+    }
+
+    .comm-price {
+      font-family: var(--fm);
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 5px
+    }
+
+    /* EXPLAINABILITY */
+    .explain-factor {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .explain-factor:last-child {
+      border-bottom: none
+    }
+
+    .explain-label {
+      font-size: 12px;
+      color: var(--muted);
+      width: 130px;
+      flex-shrink: 0
+    }
+
+    .explain-bar {
+      flex: 1;
+      height: 8px;
+      background: var(--s2);
+      border-radius: 4px;
+      overflow: hidden
+    }
+
+    .explain-val {
+      font-family: var(--fm);
+      font-size: 11px;
+      width: 40px;
+      text-align: right;
+      flex-shrink: 0
+    }
+
+    /* TIMELINE */
+    .timeline {
+      position: relative;
+      padding-left: 28px
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 9px;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: linear-gradient(to bottom, var(--cyan), var(--violet), transparent)
+    }
+
+    .tl-item {
+      position: relative;
+      margin-bottom: 20px
+    }
+
+    .tl-dot {
+      position: absolute;
+      left: -24px;
+      top: 3px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid var(--cyan);
+      background: var(--bg)
+    }
+
+    .tl-dot.done {
+      background: var(--cyan)
+    }
+
+    .tl-dot.active {
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+      animation: pulse 1.2s infinite
+    }
+
+    .tl-title {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 3px
+    }
+
+    .tl-sub {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    /* RISK METER */
+    .risk-gauge {
+      position: relative;
+      width: 120px;
+      height: 60px;
+      margin: 0 auto
+    }
+
+    .risk-label {
+      text-align: center;
+      font-family: var(--fm);
+      font-size: 11px;
+      margin-top: 4px
+    }
+
+    /* WINNER BANNER */
+    .winner-banner {
+      background: linear-gradient(135deg, rgba(16, 185, 129, .12), rgba(0, 212, 255, .08));
+      border: 1px solid rgba(16, 185, 129, .4);
+      border-radius: 16px;
+      padding: 22px 26px;
+      position: relative;
+      overflow: hidden
+    }
+
+    .winner-banner::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(16, 185, 129, .15), transparent);
+      border-radius: 50%;
+      pointer-events: none
+    }
+
+    /* LOADING OVERLAY */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      background: rgba(4, 7, 13, .92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      backdrop-filter: blur(10px)
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid var(--border2);
+      border-top-color: var(--cyan);
+      border-radius: 50%;
+      animation: spin .8s linear infinite
+    }
+
+    .loading-step {
+      font-size: 13px;
+      font-family: var(--fm);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0
+    }
+
+    .loading-step .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0
+    }
+
+    /* SPARKLINE */
+    .sparkline {
+      display: inline-block;
+      vertical-align: middle
+    }
+
+    /* TOOLTIP */
+    [data-tip] {
+      position: relative
+    }
+
+    [data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100%+6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--s2);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      font-size: 10px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 999;
+      font-family: var(--fb);
+      pointer-events: none
+    }
+
+    /* SCROLLBAR HIDE */
+    .no-scroll::-webkit-scrollbar {
+      display: none
+    }
+
+    /* HEATMAP */
+    .heatmap-cell {
+      border-radius: 3px;
+      transition: all .2s;
+      cursor: pointer
+    }
+
+    .heatmap-cell:hover {
+      transform: scale(1.15);
+      z-index: 10;
+      position: relative
+    }
+
+    /* PRICE CONVERGENCE */
+    .convergence-chart {
+      width: 100%;
+      height: 160px;
+      position: relative
+    }
+
+    /* RESPONSIVE CANVAS */
+    canvas {
+      max-width: 100%
+    }
+
+    /* MODAL */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 400;
+      background: rgba(4, 7, 13, .85);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      display: none
+    }
+
+    .modal-backdrop.open {
+      display: flex
+    }
+
+    .modal {
+      background: var(--s1);
+      border: 1px solid var(--border2);
+      border-radius: 18px;
+      padding: 28px;
+      width: min(600px, 90vw);
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: var(--s2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: all .2s
+    }
+
+    .modal-close:hover {
+      color: var(--text);
+      border-color: var(--border2)
+    }
+
+    /* PARTICLES (CSS only) */
+    .particle {
+      position: fixed;
+      pointer-events: none;
+      border-radius: 50%;
+      animation: particleFloat linear infinite
+    }
+
+    @keyframes particleFloat {
+      0% {
+        transform: translateY(100vh) scale(0);
+        opacity: 0
+      }
+
+      10% {
+        opacity: .5
+      }
+
+      90% {
+        opacity: .3
+      }
+
+      100% {
+        transform: translateY(-100px) scale(1.5);
+        opacity: 0
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="bg-orbs">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+  </div>
+  <div class="grid-overlay"></div>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-mark">🧠</div>
+      <span class="logo-text">PROCURE<span
+          style="-webkit-text-fill-color:var(--green);color:var(--green)">MIND</span><span class="logo-ver"
+          style="display:block;-webkit-text-fill-color:var(--muted);color:var(--muted);font-size:8px;margin-top:1px">AI
+          Procurement v2.0</span></span>
+    </div>
+    <nav class="nav" id="mainNav" style="display:none"></nav>
+    <div class="topbar-right">
+      <div style="display:flex;align-items:center;gap:6px;margin-right:8px" id="currentPageLabel">
+        <span style="font-size:14px">⚡</span>
+        <span style="font-family:var(--fh);font-size:12px;letter-spacing:.06em" id="pageTitle">Dashboard</span>
+      </div>
+      <div style="flex:1"></div>
+      <div class="tag badge-muted" id="dateEl" style="font-family:var(--fm);font-size:10px"></div>
+      <div
+        style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);border-radius:6px;padding:3px 10px;display:flex;align-items:center;gap:5px">
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--red);animation:pulse 1.5s infinite"></div>
+        <span style="font-size:10px;font-family:var(--fm);color:var(--red);font-weight:600">LIVE</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-label">Navigation</div>
+      <div class="sidebar-item active" onclick="showPage('dashboard')"><span class="icon">⚡</span>Dashboard</div>
+      <div class="sidebar-item" onclick="showPage('negotiate')"><span class="icon">🤖</span>AI Negotiate<span
+          class="badge badge-cyan sidebar-badge">NEW</span></div>
+      <div class="sidebar-item" onclick="showPage('twin')"><span class="icon">🔬</span>Digital Twin</div>
+      <div class="sidebar-item" onclick="showPage('analytics')"><span class="icon">📊</span>Analytics</div>
+      <div class="sidebar-item" onclick="showPage('carriers')"><span class="icon">🚚</span>Carriers</div>
+      <div class="sidebar-item" onclick="showPage('explainer')"><span class="icon">🔍</span>AI Explainer</div>
+
+      <div class="sidebar-label" style="margin-top:10px">Quick Stats</div>
+      <div style="padding:0 14px;display:flex;flex-direction:column;gap:8px" id="sidebarStats">
+        <div style="background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:10px 12px">
+          <div style="font-size:9px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:4px">
+            TOTAL SAVED</div>
+          <div style="font-family:var(--fh);font-size:16px;color:var(--green)" id="sbSaved">₹0</div>
+        </div>
+        <div style="background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:10px 12px">
+          <div style="font-size:9px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:4px">
+            NEGOTIATIONS</div>
+          <div style="font-family:var(--fh);font-size:16px;color:var(--cyan)" id="sbNegs">0</div>
+        </div>
+        <div style="background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:10px 12px">
+          <div style="font-size:9px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:4px">AVG
+            ROUNDS</div>
+          <div style="font-family:var(--fh);font-size:16px;color:var(--violet)" id="sbRounds">—</div>
+        </div>
+      </div>
+
+      <div class="sidebar-label" style="margin-top:10px">System</div>
+      <div style="padding:0 14px;display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px">
+          <span style="color:var(--muted)">Pricing Engine</span>
+          <span class="badge badge-green" style="font-size:9px">● ONLINE</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px">
+          <span style="color:var(--muted)">Nash Engine</span>
+          <span class="badge badge-green" style="font-size:9px">● ONLINE</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px">
+          <span style="color:var(--muted)">Memory Engine</span>
+          <span class="badge badge-cyan" style="font-size:9px">● ACTIVE</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px">
+          <span style="color:var(--muted)">Award Optimizer</span>
+          <span id="awardStatus" class="badge badge-muted" style="font-size:9px">● IDLE</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main" id="mainContent">
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- PAGE: DASHBOARD -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <div class="page active" id="page-dashboard">
+        <div class="su">
+          <div style="margin-bottom:24px">
+            <h1 style="font-family:var(--fh);font-size:24px;font-weight:900;letter-spacing:.04em;line-height:1.1">
+              AI Procurement <span style="color:var(--green)">Co-Pilot</span>
+            </h1>
+            <p style="color:var(--muted);font-size:12px;margin-top:5px">Nash bargaining · Bayesian updates · Goods-aware
+              multi-criteria scoring</p>
+          </div>
+
+          <!-- KPI Row -->
+          <div class="grid4" style="margin-bottom:20px">
+            <div class="stat-card card-glow-green">
+              <div class="stat-icon">💰</div>
+              <div class="stat-label">Total Saved</div>
+              <div class="stat-val" style="color:var(--green)" id="dashTotalSaved">₹0</div>
+              <div class="stat-sub" id="dashSavedSub">last 7 negotiations</div>
+            </div>
+            <div class="stat-card card-glow-cyan">
+              <div class="stat-icon">🚚</div>
+              <div class="stat-label">Active Carriers</div>
+              <div class="stat-val" style="color:var(--cyan)" id="dashCarrierCount">5</div>
+              <div class="stat-sub" id="dashCarrierNames">BlueDart · DTDC · Delhivery · Gati · XpressBees</div>
+            </div>
+            <div class="stat-card card-glow-violet">
+              <div class="stat-icon">🗺️</div>
+              <div class="stat-label">Route Lanes</div>
+              <div class="stat-val" style="color:var(--violet)" id="dashRouteCount">8</div>
+              <div class="stat-sub">Pan-India coverage</div>
+            </div>
+            <div class="stat-card card-glow-amber">
+              <div class="stat-icon">📊</div>
+              <div class="stat-label">Avg Rounds</div>
+              <div class="stat-val" style="color:var(--amber)" id="dashAvgSaving">3.7</div>
+              <div class="stat-sub">to convergence</div>
+            </div>
+          </div>
+
+          <!-- Active Lanes Table -->
+          <div style="margin-bottom:20px">
+            <div
+              style="font-size:11px;color:var(--muted);letter-spacing:.08em;margin-bottom:10px;font-family:var(--fm)">
+              ACTIVE LANES</div>
+            <div class="table-wrap">
+              <div class="table-head" style="grid-template-columns:1.5fr 1.5fr 1fr 1fr 0.8fr">
+                <div class="th">Origin</div>
+                <div class="th">Destination</div>
+                <div class="th">Distance</div>
+                <div class="th">Base Rate</div>
+                <div class="th">Surge</div>
+              </div>
+              <div id="activeLanesTable"></div>
+            </div>
+          </div>
+
+          <!-- Recent Negotiations Table -->
+          <div style="margin-bottom:20px">
+            <div
+              style="font-size:11px;color:var(--muted);letter-spacing:.08em;margin-bottom:10px;font-family:var(--fm)">
+              RECENT NEGOTIATIONS</div>
+            <div class="table-wrap">
+              <div class="table-head" style="grid-template-columns:1fr 1.5fr 1.2fr 1fr 0.8fr">
+                <div class="th">ID</div>
+                <div class="th">Route</div>
+                <div class="th">Winner</div>
+                <div class="th">Savings</div>
+                <div class="th">Score</div>
+              </div>
+              <div id="recentNegTable">
+                <div style="padding:30px;text-align:center;color:var(--muted);font-size:12px">No negotiations yet —
+                  launch one to see history</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Cards -->
+          <div class="grid2">
+            <div onclick="showPage('negotiate')"
+              style="background:linear-gradient(135deg,rgba(0,212,255,.08),rgba(139,92,246,.05));border:1px solid rgba(0,212,255,.2);border-radius:14px;padding:22px 24px;cursor:pointer;transition:all .2s"
+              onmouseover="this.style.borderColor='rgba(0,212,255,.5)'"
+              onmouseout="this.style.borderColor='rgba(0,212,255,.2)'">
+              <div style="font-size:28px;margin-bottom:10px">🚀</div>
+              <div style="font-family:var(--fh);font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">Run
+                New Negotiation</div>
+              <div style="font-size:12px;color:var(--muted)">Launch 5 AI agents in parallel</div>
+            </div>
+            <div onclick="showPage('twin')"
+              style="background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(16,185,129,.05));border:1px solid rgba(139,92,246,.2);border-radius:14px;padding:22px 24px;cursor:pointer;transition:all .2s"
+              onmouseover="this.style.borderColor='rgba(139,92,246,.5)'"
+              onmouseout="this.style.borderColor='rgba(139,92,246,.2)'">
+              <div style="font-size:28px;margin-bottom:10px">🔬</div>
+              <div style="font-family:var(--fh);font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">
+                Simulate with Digital Twin</div>
+              <div style="font-size:12px;color:var(--muted)">Test scenarios before going live</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- PAGE: NEGOTIATE -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <div class="page" id="page-negotiate">
+        <div class="su" style="display:flex;gap:20px;height:100%">
+          <!-- Form panel -->
+          <div style="width:240px;flex-shrink:0;display:flex;flex-direction:column;gap:12px">
+            <div class="card card-sm">
+              <div
+                style="font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:.08em;margin-bottom:14px;color:var(--cyan)">
+                ⚡ New Shipment RFQ</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+                <div>
+                  <div class="form-label">Origin</div>
+                  <select class="form-input form-select" id="fOrigin" onchange="updateDests()"
+                    style="font-size:11px;padding:6px 10px"></select>
+                </div>
+                <div>
+                  <div class="form-label">Destination</div>
+                  <select class="form-input form-select" id="fDest" style="font-size:11px;padding:6px 10px"></select>
+                </div>
+              </div>
+              <div style="margin-bottom:10px">
+                <div class="form-label">Goods Type</div>
+                <select class="form-input form-select" id="fGoods" style="font-size:11px;padding:6px 10px"></select>
+              </div>
+              <div style="margin-bottom:12px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                  <div class="form-label" style="margin:0">Weight (KG)</div>
+                  <span style="font-family:var(--fm);font-size:10px;color:var(--cyan)" id="fWeightVal">1,600</span>
+                </div>
+                <input type="range" id="fWeightSlider" min="50" max="5000" value="1600"
+                  style="width:100%;accent-color:var(--cyan)"
+                  oninput="document.getElementById('fWeightVal').textContent=Number(this.value).toLocaleString();document.getElementById('fWeight').value=this.value;updateMarketPreview()">
+                <input type="hidden" id="fWeight" value="1600">
+                <div style="font-size:9px;color:var(--muted);margin-top:2px">▲ Medium +2%</div>
+              </div>
+              <div style="margin-bottom:12px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                  <div class="form-label" style="margin:0">Deadline (DAYS)</div>
+                  <span style="font-family:var(--fm);font-size:10px;color:var(--amber)" id="fDeadlineVal">3</span>
+                </div>
+                <input type="range" id="fDeadlineSlider" min="1" max="30" value="3"
+                  style="width:100%;accent-color:var(--amber)"
+                  oninput="document.getElementById('fDeadlineVal').textContent=this.value;document.getElementById('fDeadline').value=this.value;updateMarketPreview()">
+                <input type="hidden" id="fDeadline" value="3">
+                <div style="font-size:9px;color:var(--red);margin-top:2px">◆ Express +8%</div>
+              </div>
+              <div style="margin-bottom:12px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                  <div class="form-label" style="margin:0">Budget (₹)</div>
+                  <span style="font-family:var(--fm);font-size:10px;color:var(--green)" id="fBudgetVal">23,000</span>
+                </div>
+                <input type="range" id="fBudgetSlider" min="5000" max="200000" value="23000" step="500"
+                  style="width:100%;accent-color:var(--green)"
+                  oninput="document.getElementById('fBudgetVal').textContent=Number(this.value).toLocaleString();document.getElementById('fBudget').value=this.value;updateMarketPreview()">
+                <input type="hidden" id="fBudget" value="23000">
+                <div style="font-size:9px;color:var(--violet);margin-top:2px">▼ Below market</div>
+              </div>
+              <!-- Live Market Estimate -->
+              <div
+                style="background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);border-radius:9px;padding:12px;margin-bottom:12px">
+                <div
+                  style="font-size:9px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:6px">
+                  LIVE MARKET ESTIMATE</div>
+                <div style="font-family:var(--fh);font-size:20px;color:var(--cyan)" id="mrVal">—</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:3px" id="mrRange">—</div>
+                <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap" id="mrBadges"></div>
+              </div>
+              <button class="btn btn-primary btn-full" id="launchBtn" onclick="launchNegotiation()"
+                style="background:linear-gradient(135deg,var(--cyan),var(--green));font-size:13px;padding:12px">
+                ⚡ LAUNCH 5 AI AGENTS
+              </button>
+              <!-- Strategy selector -->
+              <div style="margin-top:12px">
+                <div
+                  style="font-size:9px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:7px">
+                  NEGOTIATION STRATEGY</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px" id="strategyBtns">
+                  <div class="strategy-opt active" data-s="auto" onclick="selectStrategy(this)"
+                    style="padding:6px 8px;border-radius:7px;border:1px solid rgba(0,212,255,.3);background:rgba(0,212,255,.07);cursor:pointer;transition:all .2s;text-align:center">
+                    <div style="font-size:10px;font-weight:600;color:var(--cyan)">🤖 Auto</div>
+                  </div>
+                  <div class="strategy-opt" data-s="aggressive" onclick="selectStrategy(this)"
+                    style="padding:6px 8px;border-radius:7px;border:1px solid var(--border);background:var(--s2);cursor:pointer;transition:all .2s;text-align:center">
+                    <div style="font-size:10px;font-weight:600;color:var(--red)">⚡ Aggr.</div>
+                  </div>
+                  <div class="strategy-opt" data-s="moderate" onclick="selectStrategy(this)"
+                    style="padding:6px 8px;border-radius:7px;border:1px solid var(--border);background:var(--s2);cursor:pointer;transition:all .2s;text-align:center">
+                    <div style="font-size:10px;font-weight:600;color:var(--amber)">⚖️ Mod.</div>
+                  </div>
+                  <div class="strategy-opt" data-s="collaborative" onclick="selectStrategy(this)"
+                    style="padding:6px 8px;border-radius:7px;border:1px solid var(--border);background:var(--s2);cursor:pointer;transition:all .2s;text-align:center">
+                    <div style="font-size:10px;font-weight:600;color:var(--green)">🤝 Collab</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Results area -->
+          <div style="flex:1;display:flex;flex-direction:column;gap:16px;overflow-y:auto" id="negResults">
+            <!-- Empty state -->
+            <div id="negEmpty"
+              style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);text-align:center;padding:40px">
+              <div style="font-size:64px;margin-bottom:20px;opacity:.3">🤖</div>
+              <div style="font-family:var(--fh);font-size:16px;color:var(--text);margin-bottom:8px">Procurement AI Ready
+              </div>
+              <div style="font-size:13px;max-width:300px;line-height:1.6">Configure your shipment and launch 5 parallel
+                AI negotiation agents</div>
+              <div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+                <span class="badge badge-cyan">Nash Bargaining</span>
+                <span class="badge badge-violet">Bayesian Updates</span>
+                <span class="badge badge-green">Parallel Agents</span>
+                <span class="badge badge-amber">Award Optimizer</span>
+              </div>
+            </div>
+
+            <!-- Live negotiation feed (shown while running) -->
+            <div id="negLive" style="display:none">
+              <!-- Timeline steps -->
+              <div class="card" style="margin-bottom:0">
+                <div
+                  style="font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:16px">
+                  EXECUTION PIPELINE</div>
+                <div class="timeline" id="pipelineTimeline"></div>
+              </div>
+
+              <!-- Live feed -->
+              <div class="neg-feed">
+                <div class="neg-feed-header">
+                  <div class="live-dot" style="flex-shrink:0"></div>
+                  <span style="font-size:11px;font-family:var(--fm);color:var(--cyan);letter-spacing:.06em">LIVE
+                    NEGOTIATION FEED</span>
+                  <span style="margin-left:auto;font-size:10px;color:var(--muted)" id="feedRound">Round 0</span>
+                </div>
+                <div class="neg-ticker" id="negTicker"></div>
+              </div>
+            </div>
+
+            <!-- Results (shown after completion) -->
+            <div id="negDone" style="display:none">
+              <!-- Winner banner -->
+              <div class="winner-banner" id="winnerBanner">
+                <div
+                  style="font-size:11px;color:var(--green);letter-spacing:.1em;font-family:var(--fm);margin-bottom:10px">
+                  🏆 AWARD RECOMMENDATION · AwardOptimizer (W=0.45/0.35/0.20)</div>
+                <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+                  <div>
+                    <div id="winnerName" style="font-family:var(--fh);font-size:26px;font-weight:900"></div>
+                    <div id="winnerScore" style="font-size:12px;color:var(--muted);margin-top:3px"></div>
+                  </div>
+                  <div id="winnerStats" style="display:flex;gap:24px;flex-wrap:wrap"></div>
+                </div>
+              </div>
+
+              <!-- Score table -->
+              <div>
+                <div
+                  style="font-size:11px;color:var(--muted);letter-spacing:.08em;font-family:var(--fm);margin-bottom:8px">
+                  CARRIER SCORES · Price×0.45 + Reliability×0.35 + Performance×0.20</div>
+                <div class="table-wrap" id="scoreTable"></div>
+              </div>
+
+              <!-- Convergence chart + detail -->
+              <div class="grid2">
+                <div class="card">
+                  <div
+                    style="font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:10px">
+                    PRICE CONVERGENCE</div>
+                  <canvas id="convergenceChart" height="160"></canvas>
+                </div>
+                <div class="card" id="roundDetailCard">
+                  <div
+                    style="font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:10px">
+                    ROUND-BY-ROUND (click carrier)</div>
+                  <div id="roundDetail" style="color:var(--muted);font-size:12px;text-align:center;padding:30px">Select
+                    a carrier from the table above</div>
+                </div>
+              </div>
+
+              <!-- Comm log -->
+              <div class="card" id="commLogCard">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+                  <div style="font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em">
+                    COMMUNICATION LOG</div>
+                  <div id="commChannelBadge" style="margin-left:auto"></div>
+                </div>
+                <div id="commLog" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- PAGE: DIGITAL TWIN -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <div class="page" id="page-twin">
+        <div class="su">
+          <div style="margin-bottom:20px">
+            <h2 style="font-family:var(--fh);font-size:20px;font-weight:900;letter-spacing:.04em">Digital <span
+                style="color:var(--violet)">Twin</span></h2>
+            <p style="color:var(--muted);font-size:12px;margin-top:4px">Simulate outcomes before running live
+              negotiation</p>
+          </div>
+
+          <div style="display:flex;gap:20px">
+            <!-- Left: simulation params -->
+            <div style="width:260px;flex-shrink:0">
+              <div class="card card-sm" style="margin-bottom:14px">
+                <div
+                  style="font-size:10px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:12px">
+                  SIMULATION PARAMETERS</div>
+                <div style="margin-bottom:10px">
+                  <div class="form-label">Route</div>
+                  <select class="form-input form-select" id="twinRoute" onchange="updateTwinRate()"
+                    style="font-size:11px;padding:6px 10px"></select>
+                </div>
+                <div style="margin-bottom:10px">
+                  <div class="form-label">Goods Type</div>
+                  <select class="form-input form-select" id="twinGoods"
+                    style="font-size:11px;padding:6px 10px"></select>
+                </div>
+                <div style="margin-bottom:12px">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                    <div class="form-label" style="margin:0">Weight (KG)</div>
+                    <span style="font-family:var(--fm);font-size:10px;color:var(--cyan)" id="twinWeightVal">800</span>
+                  </div>
+                  <input type="range" id="twinWeightSlider" min="50" max="5000" value="800"
+                    style="width:100%;accent-color:var(--cyan)"
+                    oninput="document.getElementById('twinWeightVal').textContent=Number(this.value).toLocaleString();document.getElementById('twinWeight').value=this.value;updateTwinRate()">
+                  <input type="hidden" id="twinWeight" value="800">
+                  <div style="font-size:9px;color:var(--muted);margin-top:2px">Standard</div>
+                </div>
+                <div style="margin-bottom:14px">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                    <div class="form-label" style="margin:0">Deadline (DAYS)</div>
+                    <span style="font-family:var(--fm);font-size:10px;color:var(--amber)" id="twinDeadlineVal">4</span>
+                  </div>
+                  <input type="range" id="twinDeadlineSlider" min="1" max="30" value="4"
+                    style="width:100%;accent-color:var(--amber)"
+                    oninput="document.getElementById('twinDeadlineVal').textContent=this.value;document.getElementById('twinDeadline').value=this.value;updateTwinRate()">
+                  <input type="hidden" id="twinDeadline" value="4">
+                  <div style="font-size:9px;color:var(--muted);margin-top:2px">Priority +2%</div>
+                </div>
+                <div style="margin-bottom:14px">
+                  <div
+                    style="font-size:10px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:8px">
+                    COMPUTED MARKET RATE</div>
+                  <div style="font-family:var(--fh);font-size:22px;color:var(--cyan)" id="twinMarketRate">—</div>
+                  <div style="font-size:10px;color:var(--muted);margin-top:2px" id="twinMarketRange">—</div>
+                  <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap" id="twinBadges"></div>
+                </div>
+                <button class="btn btn-primary btn-full" onclick="runTwinSimulation()" style="font-size:12px">🔬 Run 9
+                  Scenarios</button>
+              </div>
+            </div>
+
+            <!-- Right: results -->
+            <div style="flex:1;display:flex;flex-direction:column;gap:16px">
+              <!-- Budget Scenario Analysis -->
+              <div>
+                <div
+                  style="font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:10px">
+                  BUDGET SCENARIO ANALYSIS</div>
+                <div id="budgetScenarios" style="display:flex;flex-direction:column;gap:10px">
+                  <div style="color:var(--muted);font-size:12px;padding:40px;text-align:center">Run simulation to view
+                    budget scenarios</div>
+                </div>
+              </div>
+              <!-- Carrier Win Probability -->
+              <div id="twinWinProb" style="display:none">
+                <div
+                  style="font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:10px">
+                  CARRIER WIN PROBABILITY <span style="font-size:9px">(simulated at market budget)</span></div>
+                <div class="card" id="twinWinBars"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hidden inputs for twin budget compat -->
+          <input type="hidden" id="twinBudget" value="100000">
+          <div id="twinScenarios" style="display:none">
+            <div id="scenarioGrid"></div>
+            <canvas id="twinChart" style="display:none"></canvas>
+            <div id="twinHeatmap" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- PAGE: ANALYTICS -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <div class="page" id="page-analytics">
+        <div class="su">
+          <div style="margin-bottom:24px">
+            <h2 style="font-family:var(--fh);font-size:20px;font-weight:900;letter-spacing:.04em">Procurement <span
+                style="color:var(--amber)">Analytics</span></h2>
+            <p style="color:var(--muted);font-size:13px;margin-top:4px">Historical performance intelligence and trend
+              analysis</p>
+          </div>
+          <div class="grid4" style="margin-bottom:20px" id="analyticsKPIs">
+            <div class="stat-card">
+              <div class="stat-icon">📦</div>
+              <div class="stat-label">Shipments Processed</div>
+              <div class="stat-val" style="color:var(--cyan)" id="akShipments">200</div>
+              <div class="stat-sub">Synthetic dataset</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">💰</div>
+              <div class="stat-label">Total Savings Pool</div>
+              <div class="stat-val" style="color:var(--green)" id="akSavings">₹2.4M</div>
+              <div class="stat-sub">Projected annual</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">⚡</div>
+              <div class="stat-label">Avg Negotiation Time</div>
+              <div class="stat-val" style="color:var(--violet)">2.3s</div>
+              <div class="stat-sub">vs 3–5 days manual</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🎯</div>
+              <div class="stat-label">Convergence Rate</div>
+              <div class="stat-val" style="color:var(--amber)">94%</div>
+              <div class="stat-sub">Within budget ceiling</div>
+            </div>
+          </div>
+          <div class="grid2" style="margin-bottom:20px">
+            <div class="card">
+              <div
+                style="font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:10px">
+                SAVINGS TREND (simulated 30 days)</div>
+              <canvas id="trendChart" height="180"></canvas>
+            </div>
+            <div class="card">
+              <div
+                style="font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:10px">
+                WIN RATE BY CARRIER</div>
+              <canvas id="winRateChart" height="180"></canvas>
+            </div>
+          </div>
+          <div class="grid2">
+            <div class="card">
+              <div
+                style="font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:10px">
+                ROUTE VOLUME DISTRIBUTION</div>
+              <canvas id="routeVolumeChart" height="180"></canvas>
+            </div>
+            <div class="card">
+              <div
+                style="font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:10px">
+                GOODS TYPE BREAKDOWN</div>
+              <canvas id="goodsChart" height="180"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- PAGE: CARRIERS -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <div class="page" id="page-carriers">
+        <div class="su">
+          <div style="margin-bottom:24px">
+            <h2 style="font-family:var(--fh);font-size:20px;font-weight:900;letter-spacing:.04em">Carrier <span
+                style="color:var(--cyan)">Intelligence</span></h2>
+            <p style="color:var(--muted);font-size:13px;margin-top:4px">Behavioral profiles · Nash persona scores ·
+              Historical performance</p>
+          </div>
+          <div id="carrierCards" style="display:flex;flex-direction:column;gap:16px"></div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- PAGE: AI EXPLAINER -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <div class="page" id="page-explainer">
+        <div class="su">
+          <div style="margin-bottom:24px">
+            <h2 style="font-family:var(--fh);font-size:20px;font-weight:900;letter-spacing:.04em">AI <span
+                style="color:var(--green)">Explainability</span> Layer</h2>
+            <p style="color:var(--muted);font-size:13px;margin-top:4px">Understand exactly how the AI makes every
+              decision — full transparency</p>
+          </div>
+
+          <div id="explainEmpty" style="text-align:center;padding:40px;color:var(--muted)">
+            <div style="font-size:48px;margin-bottom:16px">🔍</div>
+            <div style="font-family:var(--fh);font-size:15px;color:var(--text);margin-bottom:8px">Run a negotiation
+              first</div>
+            <div style="font-size:12px">The explainability layer will show factor weights, decision reasoning, and model
+              transparency</div>
+            <button class="btn btn-outline btn-sm" style="margin-top:16px" onclick="showPage('negotiate')">→ Go to
+              Negotiate</button>
+          </div>
+          <div id="explainContent" style="display:none">
+            <div class="grid2" style="margin-bottom:20px">
+              <div class="card card-glow-green">
+                <div
+                  style="font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:14px">
+                  AWARD DECISION FACTORS</div>
+                <div id="explainFactors"></div>
+              </div>
+              <div class="card">
+                <div
+                  style="font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:10px">
+                  WEIGHT BREAKDOWN</div>
+                <canvas id="explainPieChart" height="200"></canvas>
+              </div>
+            </div>
+            <div class="grid2" style="margin-bottom:20px">
+              <div class="card">
+                <div
+                  style="font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:14px">
+                  NASH BARGAINING REASONING</div>
+                <div id="nashReasoning"></div>
+              </div>
+              <div class="card">
+                <div
+                  style="font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:14px">
+                  BAYESIAN TRUST EVOLUTION</div>
+                <canvas id="bayesianChart" height="160"></canvas>
+              </div>
+            </div>
+            <div class="card">
+              <div
+                style="font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:14px">
+                DECISION AUDIT TRAIL</div>
+              <div id="auditTrail"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end main -->
+  </div><!-- end layout -->
+
+  <!-- LOADING OVERLAY -->
+  <div class="loading-overlay" id="loadingOverlay" style="display:none">
+    <div style="text-align:center;margin-bottom:20px">
+      <div
+        style="font-family:var(--fh);font-size:18px;letter-spacing:.06em;background:linear-gradient(90deg,var(--cyan),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+        NEGOTIATION ENGINE
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;font-family:var(--fm)">MultiCarrierOrchestrator ·
+        asyncio.gather()</div>
+    </div>
+    <div class="spinner"></div>
+    <div id="loadingSteps" style="display:flex;flex-direction:column;gap:8px;min-width:360px"></div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════
+    // DATA LAYER — loaded dynamically from Flask API
+    // ═══════════════════════════════════════════════════════════════════
+    let CARRIERS = [];
+    let ROUTES = [];
+    let GOODS = [];
+    const COLORS = ['#00d4ff', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#a78bfa', '#34d399', '#fb923c', '#f43f5e'];
+    const PERSONA_MAP = { 'C001': .35, 'C002': .55, 'C003': .45, 'C004': .60, 'C005': .50 };
+    const CHANNELS = ['email', 'whatsapp', 'sms', 'email', 'whatsapp'];
+    const CH_ICONS = { email: '✉️', whatsapp: '💬', sms: '📱' };
+
+    // Global state
+    let history = [];
+    let lastResult = null;
+    let selectedStrategy = 'auto';
+    let twinChart_ = null, convergenceChart_ = null, savingsChart_ = null;
+    let radarChart_ = null, trendChart_ = null, winChart_ = null;
+    let bayesChart_ = null, explainPie_ = null, goodsChart_ = null, routeVol_ = null;
+
+    // Helper: assign color & persona to carrier objects from API
+    function enrichCarrier(c, i) {
+      c.color = COLORS[i % COLORS.length];
+      c.persona = PERSONA_MAP[c.id] || 0.45;
+      c.delay = c.avg_delay_hrs;
+      c.success = c.success_rate;
+      return c;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // API HELPERS
+    // ═══════════════════════════════════════════════════════════════════
+    async function api(url, opts) {
+      const r = await fetch(url, opts);
+      return r.json();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // PRICING MODEL — mirrors strategy/pricing_model.py (for Digital Twin only)
+    // ═══════════════════════════════════════════════════════════════════
+    function marketRate(km, kg, days) {
+      return 28 * km + 3.5 * kg * (km / 100) + (days <= 3 ? 0.08 * 28 * km : 0);
+    }
+    function computeBounds(km, kg, days, budget, quote) {
+      const mr = marketRate(km, kg, days);
+      const target = Math.min(mr * .95, budget * .98);
+      const opening = target * .6 + quote * .4;
+      const strategy = quote > budget * 1.15 ? 'aggressive' : quote > budget * 1.05 ? 'moderate' : 'collaborative';
+      return { mr, low: mr * .94, high: mr * 1.06, target, walkaway: budget, opening: r100(opening), strategy };
+    }
+    function bayesian(prior, resp, round) {
+      return prior * (1 - Math.min(.1 * round, .5)) + resp * Math.min(.1 * round, .5);
+    }
+    function r100(v) { return Math.round(v / 100) * 100 }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // NEGOTIATION AGENT — mirrors agents/negotiation_agent.py
+    // ═══════════════════════════════════════════════════════════════════
+    function negotiate(carrier, initQuote, ship, overrideStrategy = null) {
+      const bounds = computeBounds(ship.km, ship.kg, ship.days, ship.budget, initQuote);
+      if (overrideStrategy) bounds.strategy = overrideStrategy;
+      let ai = bounds.opening, cp = initQuote;
+      const rounds = [];
+      let conv = false;
+      for (let r = 1; r <= 6; r++) {
+        const sentiment = (initQuote - cp) > initQuote * .05 ? 'cooperative' : 'firm';
+        ai = r100(bayesian(ai, cp, r));
+        const noise = (Math.random() - .5) * .01;
+        cp = r100(Math.max(cp - (cp - ai) * carrier.persona * (1 + noise), initQuote * .9));
+        const delta = Math.abs(ai - cp);
+        conv = cp > 0 && delta / cp < .015;
+        rounds.push({ r, ai, cp, delta, conv, sentiment, reasoning: `Round ${r}: Counter ₹${ai.toLocaleString()} via ${bounds.strategy} strategy. Bayesian trust=${Math.min(.1 * r, .5).toFixed(2)}` });
+        if (conv || cp <= bounds.target) break;
+        if (cp > bounds.walkaway && r >= 4) break;
+      }
+      return { carrier_id: carrier.id, name: carrier.name, initQuote, final: cp, rounds, conv, savings: initQuote - cp, bounds, channel: CHANNELS[CARRIERS.indexOf(carrier)] };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // AWARD OPTIMIZER — mirrors optimization/award_optimizer.py
+    // ═══════════════════════════════════════════════════════════════════
+    function scoreCarriers(negs) {
+      const prices = negs.map(n => n.final);
+      const pMin = Math.min(...prices), pMax = Math.max(...prices);
+      return negs.map(n => {
+        const c = CARRIERS.find(x => x.id === n.carrier_id);
+        const ps = pMax === pMin ? 1 : 1 - (n.final - pMin) / (pMax - pMin);
+        const rs = c.reliability;
+        const delay_pen = Math.min(c.delay / 10, .3);
+        const rat_boost = (c.rating - 3) / 4 * .2;
+        const perf = Math.min(Math.max(c.success - delay_pen + rat_boost, 0), 1);
+        const comp = .45 * ps + .35 * rs + .20 * perf;
+        return { ...n, ...c, ps, rs, perf, comp, savingsPct: (n.savings / n.initQuote) * 100, rank: 0, rec: false };
+      }).sort((a, b) => b.comp - a.comp).map((s, i) => ({ ...s, rank: i + 1, rec: i === 0 }));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // NAVIGATION
+    // ═══════════════════════════════════════════════════════════════════
+    const PAGE_ICONS = { dashboard: '⚡', negotiate: '🤖', twin: '🔬', analytics: '📊', carriers: '🚚', explainer: '🔍' };
+    const PAGE_TITLES = { dashboard: 'Dashboard', negotiate: 'AI Negotiate', twin: 'Digital Twin', analytics: 'Analytics', carriers: 'Carriers', explainer: 'AI Explainer' };
+    function showPage(id) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+      document.getElementById('page-' + id).classList.add('active');
+      document.querySelectorAll('.sidebar-item').forEach(b => { if (b.getAttribute('onclick')?.includes(id)) b.classList.add('active') });
+      // Update topbar page label
+      const ptEl = document.getElementById('pageTitle');
+      if (ptEl) ptEl.textContent = PAGE_TITLES[id] || id;
+      const plEl = document.getElementById('currentPageLabel');
+      if (plEl) plEl.querySelector('span').textContent = PAGE_ICONS[id] || '⚡';
+      if (id === 'analytics') renderAnalyticsCharts();
+      if (id === 'dashboard') {
+        fetch('/api/stats').then(r => r.json()).then(stats => {
+          if (document.getElementById('sbSaved')) document.getElementById('sbSaved').textContent = stats.total_savings > 0 ? '₹' + Math.round(stats.total_savings).toLocaleString() : '₹0';
+          if (document.getElementById('sbNegs')) document.getElementById('sbNegs').textContent = stats.negotiations_run || history.length;
+          if (document.getElementById('sbRounds')) document.getElementById('sbRounds').textContent = stats.avg_rounds || '—';
+          if (document.getElementById('dashTotalSaved')) document.getElementById('dashTotalSaved').textContent = stats.total_savings > 0 ? '₹' + Math.round(stats.total_savings).toLocaleString() : '₹0';
+          if (stats.avg_rounds && document.getElementById('dashAvgSaving')) document.getElementById('dashAvgSaving').textContent = (+stats.avg_rounds).toFixed(1);
+        }).catch(() => { });
+        updateRecentNegs();
+      }
+      if (id === 'carriers') renderCarrierCards();
+      if (id === 'explainer') { renderExplainer(); }
+      if (id === 'twin') updateTwinRate();
+    }
+
+    function selectStrategy(el) {
+      document.querySelectorAll('.strategy-opt').forEach(e => {
+        e.style.borderColor = 'var(--border)'; e.style.background = 'var(--s2)';
+      });
+      el.style.borderColor = 'rgba(0,212,255,.3)'; el.style.background = 'rgba(0,212,255,.07)';
+      selectedStrategy = el.dataset.s;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // FORM HELPERS
+    // ═══════════════════════════════════════════════════════════════════
+    function updateDests() {
+      const o = document.getElementById('fOrigin').value;
+      const d = document.getElementById('fDest');
+      const routes = ROUTES.filter(r => r.from === o);
+      d.innerHTML = routes.map(r => `<option>${r.to}</option>`).join('');
+      updateMarketPreview();
+    }
+    function updateMarketPreview() {
+      const o = document.getElementById('fOrigin').value;
+      const dest = document.getElementById('fDest').value;
+      const kg = +document.getElementById('fWeight').value || 1600;
+      const days = +document.getElementById('fDeadline').value || 3;
+      const budget = +document.getElementById('fBudget').value || 23000;
+      const route = ROUTES.find(r => r.from === o && r.to === dest);
+      if (!route) { document.getElementById('mrVal').textContent = '—'; return; }
+      const mr = marketRate(route.km, kg, days);
+      document.getElementById('mrVal').textContent = '₹' + Math.round(mr).toLocaleString();
+      document.getElementById('mrRange').textContent = `₹${r100(mr * .94).toLocaleString()} – ₹${r100(mr * 1.06).toLocaleString()}`;
+      const surge = (route.base > 0) ? (mr / route.base).toFixed(2) : 1;
+      const isUrgent = days <= 3;
+      const badgesEl = document.getElementById('mrBadges');
+      if (badgesEl) badgesEl.innerHTML = `
+        <span style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:5px;padding:2px 7px;font-size:9px;font-family:var(--fm);color:var(--amber)">${route.km}km</span>
+        <span style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:5px;padding:2px 7px;font-size:9px;font-family:var(--fm);color:var(--red)">×${surge} surge</span>
+        ${isUrgent ? '<span style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);border-radius:5px;padding:2px 7px;font-size:9px;font-family:var(--fm);color:var(--red)">URGENT</span>' : ''}
+        ${budget < mr ? '<span style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);border-radius:5px;padding:2px 7px;font-size:9px;font-family:var(--fm);color:var(--violet)">Below market</span>' : ''}`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ACTIVE LANES TABLE
+    // ═══════════════════════════════════════════════════════════════════
+    function renderActiveLanes() {
+      const el = document.getElementById('activeLanesTable');
+      if (!el || !ROUTES.length) return;
+      const CITY_COLORS = ['#00d4ff', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#a78bfa', '#34d399'];
+      el.innerHTML = ROUTES.map((r, i) => {
+        const mr = r.base > 0 ? marketRate(r.km, 500, 3) : 0;
+        const surge = r.base > 0 ? (mr / r.base).toFixed(2) : 1.00;
+        const surgeNum = parseFloat(surge);
+        const surgeColor = surgeNum > 1.05 ? 'var(--red)' : surgeNum < 0.98 ? 'var(--green)' : 'var(--amber)';
+        const fromColor = CITY_COLORS[i % CITY_COLORS.length];
+        const toColor = CITY_COLORS[(i + 3) % CITY_COLORS.length];
+        return `<div class="table-row" style="grid-template-columns:1.5fr 1.5fr 1fr 1fr 0.8fr">
+          <div class="td" style="color:${fromColor};font-weight:600;font-size:12px">${r.from}</div>
+          <div class="td" style="color:${toColor};font-weight:600;font-size:12px">${r.to}</div>
+          <div class="td" style="font-family:var(--fm);font-size:11px;color:var(--muted)">${r.km} km</div>
+          <div class="td" style="font-family:var(--fm);font-size:11px">₹${r.base.toLocaleString()}</div>
+          <div class="td" style="font-family:var(--fm);font-size:12px;font-weight:700;color:${surgeColor}">×${surge}</div>
+        </div>`;
+      }).join('');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // RECENT NEGOTIATIONS TABLE
+    // ═══════════════════════════════════════════════════════════════════
+    async function updateRecentNegs() {
+      const el = document.getElementById('recentNegTable');
+      if (!el) return;
+      let rows = [];
+      try {
+        const data = await fetch('/api/negotiations/history?limit=5').then(r => r.json());
+        if (data && data.length > 0) {
+          rows = data.map(h => {
+            const cname = h.carrier_name || '';
+            const c = CARRIERS.find(x => cname.includes(x.name.split(' ')[0])) || { color: '#10b981' };
+            const score = h.composite_score ? Math.round(h.composite_score * 100) + '%' : '—';
+            return `<div class="table-row" style="grid-template-columns:1fr 1.5fr 1.2fr 1fr 0.8fr">
+              <div class="td" style="font-family:var(--fm);font-size:10px;color:var(--cyan)">${h.shipment_id}</div>
+              <div class="td" style="font-size:11px">${h.origin || ''}—${h.destination || ''}</div>
+              <div class="td" style="font-size:11px;font-weight:600;color:${c.color}">${cname.split(' ')[0]}</div>
+              <div class="td" style="font-family:var(--fm);font-size:11px;color:var(--green)">+₹${Math.round(h.savings || 0).toLocaleString()}</div>
+              <div class="td" style="font-family:var(--fm);font-size:11px;color:var(--cyan)">${score}</div>
+            </div>`;
+          });
+        }
+      } catch (e) { }
+      if (rows.length > 0) {
+        el.innerHTML = rows.join('');
+        // Also update dashboard stats from history
+        if (document.getElementById('dashTotalSaved')) {
+          try {
+            const stats = await fetch('/api/stats').then(r => r.json());
+            document.getElementById('dashTotalSaved').textContent = stats.total_savings > 0 ? '₹' + Math.round(stats.total_savings).toLocaleString() : '₹0';
+          } catch (e) { }
+        }
+      } else if (history.length > 0) {
+        el.innerHTML = history.slice().reverse().slice(0, 5).map(h => {
+          const wc = CARRIERS.find(c => c.id === h.winner.carrier_id) || { color: '#10b981' };
+          return `<div class="table-row" style="grid-template-columns:1fr 1.5fr 1.2fr 1fr 0.8fr">
+            <div class="td" style="font-family:var(--fm);font-size:10px;color:var(--cyan)">${h.ship.id}</div>
+            <div class="td" style="font-size:11px">${h.ship.origin}—${h.ship.dest}</div>
+            <div class="td" style="font-size:11px;font-weight:600;color:${wc.color}">${h.winner.name.split(' ')[0]}</div>
+            <div class="td" style="font-family:var(--fm);font-size:11px;color:var(--green)">+₹${h.winner.savings.toLocaleString()}</div>
+            <div class="td" style="font-family:var(--fm);font-size:11px;color:var(--cyan)">${Math.round(h.winner.comp * 100)}%</div>
+          </div>`;
+        }).join('');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // DIGITAL TWIN — MARKET RATE UPDATER
+    // ═══════════════════════════════════════════════════════════════════
+    function updateTwinRate() {
+      const routeStr = document.getElementById('twinRoute')?.value;
+      if (!routeStr || !ROUTES.length) return;
+      const [from, to] = routeStr.split(' → ');
+      const route = ROUTES.find(r => r.from === from && r.to === to);
+      if (!route) return;
+      const kg = +document.getElementById('twinWeight').value || 800;
+      const days = +document.getElementById('twinDeadline').value || 4;
+      const mr = marketRate(route.km, kg, days);
+      const surge = route.base > 0 ? (mr / route.base).toFixed(2) : '1.00';
+      const mrEl = document.getElementById('twinMarketRate');
+      const mrREl = document.getElementById('twinMarketRange');
+      const bdgEl = document.getElementById('twinBadges');
+      if (mrEl) mrEl.textContent = '₹' + Math.round(mr).toLocaleString();
+      if (mrREl) mrREl.textContent = `₹${r100(mr * .94).toLocaleString()} – ₹${r100(mr * 1.06).toLocaleString()}`;
+      if (bdgEl) bdgEl.innerHTML = `
+        <span style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:5px;padding:2px 7px;font-size:9px;font-family:var(--fm);color:var(--amber)">${route.km}km</span>
+        <span style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);border-radius:5px;padding:2px 7px;font-size:9px;font-family:var(--fm);color:var(--cyan)">surge ×${surge}</span>`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // MAIN NEGOTIATION
+    // ═══════════════════════════════════════════════════════════════════
+    async function launchNegotiation() {
+      const o = document.getElementById('fOrigin').value;
+      const dest = document.getElementById('fDest').value;
+      const kg = +document.getElementById('fWeight').value;
+      const days = +document.getElementById('fDeadline').value;
+      const budget = +document.getElementById('fBudget').value;
+      const goods = document.getElementById('fGoods').value;
+      const route = ROUTES.find(r => r.from === o && r.to === dest);
+      if (!route) { alert('Route not found'); return; }
+
+      const ship = { id: `SHP${Math.floor(Math.random() * 4000 + 5000)}`, origin: o, dest, goods, kg, days, budget, km: route.km };
+
+      // Disable button
+      document.getElementById('launchBtn').disabled = true;
+      document.getElementById('launchBtn').textContent = '⚡ Running...';
+      document.getElementById('awardStatus').className = 'badge badge-cyan';
+      document.getElementById('awardStatus').textContent = '● RUNNING';
+
+      // Show live section
+      document.getElementById('negEmpty').style.display = 'none';
+      document.getElementById('negDone').style.display = 'none';
+      document.getElementById('negLive').style.display = 'block';
+
+      try {
+
+      // Build pipeline
+      const steps = [
+        { label: 'PricingModel.compute_market_rate()', sub: `${route.km}km · ${kg}kg · ${days}d deadline` },
+        { label: 'compute_negotiation_bounds()', sub: `Budget ₹${budget.toLocaleString()} · Strategy: ${selectedStrategy}` },
+        { label: 'Generating carrier quotes', sub: `5 carriers · markup 5–20% above base ₹${route.base.toLocaleString()}` },
+        { label: 'MultiCarrierOrchestrator.run()', sub: 'asyncio.gather() · 5 parallel agents' },
+        { label: 'Bayesian price updates per round', sub: 'trust = min(0.1×round, 0.5)' },
+        { label: 'AwardOptimizer.score_carriers()', sub: 'W_PRICE=0.45 · W_REL=0.35 · W_PERF=0.20' },
+      ];
+      const tl = document.getElementById('pipelineTimeline');
+      tl.innerHTML = steps.map((s, i) => `
+    <div class="tl-item" id="tl${i}">
+      <div class="tl-dot" id="tldot${i}"></div>
+      <div class="tl-title" style="color:var(--muted)">${s.label}</div>
+      <div class="tl-sub">${s.sub}</div>
+    </div>`).join('');
+
+      const ticker = document.getElementById('negTicker');
+      ticker.innerHTML = '';
+
+      // Simulate pipeline step by step
+      const quotes = {};
+      CARRIERS.forEach(c => { quotes[c.id] = r100(route.base * (1.05 + Math.random() * .15)); });
+
+      function addTick(avatar, name, msg, price, color) {
+        const div = document.createElement('div'); div.className = 'neg-msg';
+        div.innerHTML = `<div class="neg-avatar" style="background:${color}22;color:${color}">${avatar}</div>
+      <div class="neg-content">
+        <div class="neg-name" style="color:${color}">${name}</div>
+        <div class="neg-text">${msg}</div>
+        ${price ? `<div class="neg-price" style="color:${color}">₹${price.toLocaleString()}</div>` : ''}
+      </div>`;
+        ticker.appendChild(div);
+        ticker.scrollTop = ticker.scrollHeight;
+      }
+
+      await stepDelay(300);
+      markStep(0, 'done'); markStep(1, 'active');
+      addTick('🧠', 'PricingModel', `Market rate: ₹${r100(marketRate(route.km, kg, days)).toLocaleString()} · Range ±6%`, null, '#00d4ff');
+
+      await stepDelay(500);
+      markStep(1, 'done'); markStep(2, 'active');
+      addTick('⚡', 'StrategyEngine', `Strategy: ${selectedStrategy === 'auto' ? 'auto → ' + computeBounds(route.km, kg, days, budget, route.base).strategy : selectedStrategy} · Opening counter computed`, null, '#8b5cf6');
+
+      await stepDelay(400);
+      markStep(2, 'done'); markStep(3, 'active');
+      CARRIERS.forEach(c => {
+        addTick('📨', c.name, `Initial bid submitted`, quotes[c.id], c.color);
+      });
+      document.getElementById('feedRound').textContent = 'Round 1';
+
+      await stepDelay(500);
+      markStep(3, 'done'); markStep(4, 'active');
+      addTick('🤖', 'NegotiationEngine', 'Running parallel negotiations on server...', null, '#00d4ff');
+
+      // ── ACTUAL API CALL ──
+      let result;
+      try {
+        result = await fetch('/api/negotiate', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ origin: o, destination: dest, weight_kg: kg, goods_type: goods, deadline_days: days, budget_inr: budget })
+        }).then(r => r.json());
+      } catch (err) {
+        alert('Negotiation API failed: ' + err.message);
+        document.getElementById('negLive').style.display = 'none';
+        document.getElementById('negEmpty').style.display = 'block';
+        document.getElementById('launchBtn').disabled = false;
+        document.getElementById('launchBtn').textContent = `⚡ LAUNCH ${CARRIERS.length} AI AGENTS`;
+        return;
+      }
+      if (result.error) {
+        alert('Error: ' + result.error);
+        document.getElementById('negLive').style.display = 'none';
+        document.getElementById('negEmpty').style.display = 'block';
+        document.getElementById('launchBtn').disabled = false;
+        document.getElementById('launchBtn').textContent = `⚡ LAUNCH ${CARRIERS.length} AI AGENTS`;
+        return;
+      }
+
+      // Show live feed from API results
+      for (const neg of result.negotiation) {
+        const c = CARRIERS.find(x => x.id === neg.carrier_id);
+        const color = c ? c.color : '#00d4ff';
+        for (const rd of neg.round_data) {
+          addTick('🤖', 'AI Agent', rd.reasoning || `Counter ₹${rd.ai_offer.toLocaleString()}`, rd.ai_offer, '#00d4ff');
+          addTick((c ? c.name[0] : 'C'), neg.carrier_name, `${rd.sentiment === 'cooperative' ? 'Flexible' : 'Firm'} — ${rd.converged ? '✓ Converged' : '...'}`, rd.carrier_price, color);
+        }
+      }
+
+      await stepDelay(400);
+      markStep(4, 'done'); markStep(5, 'active');
+      addTick('🏆', 'AwardOptimizer', 'Scoring carriers with weighted composite formula...', null, '#10b981');
+      await stepDelay(500);
+      markStep(5, 'done');
+
+      const winner = result.scores.find(s => s.recommended) || result.scores[0];
+      addTick('✅', 'AWARD', `Winner: ${winner.carrier_name} · Score: ${(winner.composite_score * 100).toFixed(1)}%`, winner.final_price, '#10b981');
+
+      await stepDelay(600);
+      document.getElementById('negLive').style.display = 'none';
+
+      // Transform API result for showResults
+      const negResults = result.negotiation.map(n => {
+        const c = CARRIERS.find(x => x.id === n.carrier_id);
+        return {
+          carrier_id: n.carrier_id, name: n.carrier_name,
+          initQuote: n.initial_quote, final: n.final_price,
+          savings: n.savings, channel: n.channel, conv: n.converged,
+          rounds: n.round_data.map(rd => ({ r: rd.round, ai: rd.ai_offer, cp: rd.carrier_price, delta: rd.delta, conv: rd.converged, sentiment: rd.sentiment, reasoning: rd.reasoning || '' })),
+          bounds: {
+            opening: n.round_data[0] ? n.round_data[0].ai_offer : 0,
+            strategy: n.round_data[0] ? (n.round_data[0].reasoning || '').includes('aggressive') ? 'aggressive' : (n.round_data[0].reasoning || '').includes('moderate') ? 'moderate' : 'collaborative' : selectedStrategy,
+            target: 0, walkaway: budget
+          },
+          comm_log: n.comm_log
+        };
+      });
+      const scores = result.scores.map(s => ({
+        ...s, carrier_id: s.carrier_id, name: s.carrier_name,
+        initQuote: s.savings_vs_initial + s.final_price, final: s.final_price,
+        savings: s.savings_vs_initial, savingsPct: s.savings_pct,
+        ps: s.price_score, rs: s.reliability_score, perf: s.performance_score, comp: s.composite_score,
+        rec: s.recommended, rank: s.rank,
+        ...(CARRIERS.find(x => x.id === s.carrier_id) || { color: '#00d4ff', persona: 0.45 })
+      }));
+
+      showResults(ship, scores, negResults, route);
+
+      history.push({ ship, scores, winner: { ...scores[0], rounds: negResults.find(n => n.carrier_id === scores[0].carrier_id)?.rounds || [] } });
+      updateSidebarStats();
+      updateHistoryTable();
+      lastResult = { ship, scores, negResults, route };
+      document.getElementById('awardStatus').className = 'badge badge-green';
+      document.getElementById('awardStatus').textContent = '● DONE';
+      document.getElementById('launchBtn').disabled = false;
+      document.getElementById('launchBtn').textContent = `⚡ LAUNCH ${CARRIERS.length} AI AGENTS`;
+    } catch(err) {
+      document.getElementById('negLive').style.display = 'none';
+      document.getElementById('negEmpty').style.display = 'block';
+      document.getElementById('launchBtn').disabled = false;
+      document.getElementById('launchBtn').textContent = `⚡ LAUNCH ${CARRIERS.length} AI AGENTS`;
+      alert('Error rendering results: ' + err.message);
+      console.error(err);
+    }
+
+    function markStep(i, state) {
+      const dot = document.getElementById('tldot' + i);
+      const item = document.getElementById('tl' + i);
+      if (!dot) return;
+      dot.className = `tl-dot ${state}`;
+      if (item) {
+        item.querySelector('.tl-title').style.color = state === 'done' ? 'var(--text)' : state === 'active' ? 'var(--cyan)' : 'var(--muted)';
+      }
+    }
+    function stepDelay(ms) { return new Promise(r => setTimeout(r, ms)) }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SHOW RESULTS
+    // ═══════════════════════════════════════════════════════════════════
+    function showResults(ship, scores, negs, route) {
+      document.getElementById('negDone').style.display = 'block';
+
+      // Look up round counts from negs (not scores)
+      const getRounds = (cid) => (negs.find(n => n.carrier_id === cid) || { rounds: [] }).rounds;
+
+      // Winner banner
+      const w = scores[0]; const wc = CARRIERS.find(c => c.id === w.carrier_id) || { color: '#10b981' };
+      const wRounds = getRounds(w.carrier_id);
+      document.getElementById('winnerName').textContent = w.name;
+      document.getElementById('winnerName').style.color = wc.color;
+      document.getElementById('winnerScore').textContent = `Composite Score: ${(w.comp * 100).toFixed(1)}% · Price×0.45 + Reliability×0.35 + Performance×0.20`;
+      document.getElementById('winnerStats').innerHTML = [
+        ['Final Price', `₹${w.final.toLocaleString()}`],
+        ['Saved', `₹${w.savings.toLocaleString()}`],
+        ['Savings %', `${w.savingsPct.toFixed(1)}%`],
+        ['Rounds', wRounds.length],
+        ['Strategy', (w.bounds?.strategy || selectedStrategy).toUpperCase()],
+        ['Channel', (CH_ICONS[w.channel] || '') + ' ' + (w.channel || '')],
+      ].map(([l, v]) => `<div style="text-align:center"><div style="font-family:var(--fh);font-size:16px;font-weight:700;color:var(--text)">${v}</div><div style="font-size:9px;color:var(--muted);margin-top:2px">${l}</div></div>`).join('');
+
+      // Score table
+      const colW = '1.8fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr';
+      let tableHTML = `<div class="table-head" style="grid-template-columns:${colW}">
+    ${['Carrier', 'Initial', 'Final', 'Saved', 'Price★', 'Rel★', 'Perf★', 'Score'].map(h => `<div class="th">${h}</div>`).join('')}
+  </div>`;
+      scores.forEach(s => {
+        const c = CARRIERS.find(x => x.id === s.carrier_id) || { color: '#00d4ff' };
+        tableHTML += `<div class="table-row" id="crow-${s.carrier_id}" onclick="document.getElementById('rdetail-${s.carrier_id}')?.scrollIntoView({behavior:'smooth'})" style="grid-template-columns:${colW};cursor:pointer">
+      <div class="td" style="gap:6px">
+        <span style="font-family:var(--fm);font-size:9px;color:var(--muted)">#${s.rank}</span>
+        <span style="font-weight:600;color:${c.color};font-size:12px">${s.name}</span>
+        ${s.rec ? '<span class="badge badge-green" style="font-size:8px">★ WINNER</span>' : ''}
+      </div>
+      <div class="td"><span style="font-family:var(--fm);font-size:11px;color:var(--muted)">₹${s.initQuote.toLocaleString()}</span></div>
+      <div class="td"><span style="font-family:var(--fm);font-size:11px">₹${s.final.toLocaleString()}</span></div>
+      <div class="td"><span style="font-family:var(--fm);font-size:11px;color:var(--green)">₹${s.savings.toLocaleString()}</span></div>
+      <div class="td"><span style="font-family:var(--fm);font-size:11px;color:var(--cyan)">${s.ps.toFixed(3)}</span></div>
+      <div class="td"><span style="font-family:var(--fm);font-size:11px;color:var(--violet)">${s.rs.toFixed(3)}</span></div>
+      <div class="td"><span style="font-family:var(--fm);font-size:11px;color:var(--amber)">${s.perf.toFixed(3)}</span></div>
+      <div class="td"><span style="font-family:var(--fm);font-size:12px;font-weight:700;color:${s.rec ? 'var(--green)' : 'var(--text)'}">${s.comp.toFixed(4)}</span></div>
+    </div>`;
+      });
+      document.getElementById('scoreTable').innerHTML = tableHTML;
+
+      // Convergence chart
+      renderConvergenceChart(negs);
+
+      // Render ALL carriers' round data expanded below
+      const rd = document.getElementById('roundDetail');
+      rd.innerHTML = negs.map(neg => {
+        const c = CARRIERS.find(x => x.id === neg.carrier_id) || { color: '#00d4ff', name: neg.name };
+        const isWinner = neg.carrier_id === scores[0].carrier_id;
+        return `<div id="rdetail-${neg.carrier_id}" style="margin-bottom:16px;border:1px solid ${isWinner ? 'rgba(16,185,129,.35)' : 'var(--border)'};border-radius:10px;overflow:hidden;${isWinner ? 'box-shadow:0 0 12px rgba(16,185,129,.12)' : ''}">
+          <div style="background:${isWinner ? 'rgba(16,185,129,.08)' : 'var(--s2)'};padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-weight:700;font-size:13px;color:${c.color}">${neg.name}</span>
+            ${isWinner ? '<span class="badge badge-green" style="font-size:8px">★ WINNER</span>' : ''}
+            <span class="badge badge-muted">${CH_ICONS[neg.channel] || ''} ${neg.channel}</span>
+            <span class="badge ${neg.conv ? 'badge-green' : 'badge-amber'}">${neg.conv ? 'CONVERGED' : 'SETTLED'}</span>
+            <span style="margin-left:auto;font-family:var(--fm);font-size:11px;color:var(--muted)">Initial: <b style="color:var(--text)">₹${neg.initQuote.toLocaleString()}</b> &rarr; Final: <b style="color:var(--green)">₹${neg.final.toLocaleString()}</b> &nbsp; Saved: <b style="color:var(--green)">₹${neg.savings.toLocaleString()}</b></span>
+          </div>
+          <div style="display:grid;grid-template-columns:0.5fr 1fr 1fr 1fr 1fr 2fr;background:rgba(30,48,80,.5);padding:6px 14px;gap:4px">
+            ${['Rnd', 'AI Offer', 'Carrier', 'Delta', 'Status', 'Reasoning'].map(h => `<span class="th">${h}</span>`).join('')}
+          </div>
+          ${neg.rounds.map(r => `<div style="display:grid;grid-template-columns:0.5fr 1fr 1fr 1fr 1fr 2fr;padding:8px 14px;border-top:1px solid var(--border);gap:4px;background:${r.conv ? 'rgba(16,185,129,.03)' : 'transparent'}">
+            <span style="font-family:var(--fm);font-size:11px;color:var(--muted)">R${r.r}</span>
+            <span style="font-family:var(--fm);font-size:11px;color:var(--cyan)">₹${r.ai.toLocaleString()}</span>
+            <span style="font-family:var(--fm);font-size:11px;color:${c.color}">₹${r.cp.toLocaleString()}</span>
+            <span style="font-family:var(--fm);font-size:11px;color:var(--amber)">₹${r.delta.toLocaleString()}</span>
+            <span class="badge ${r.sentiment === 'cooperative' ? 'badge-green' : 'badge-amber'}" style="font-size:8px;align-self:center">${r.sentiment}</span>
+            <span style="font-size:10px;color:var(--muted);line-height:1.4">${r.reasoning || ''}</span>
+          </div>`).join('')}
+        </div>`;
+      }).join('');
+
+      // Comm log: show ALL carriers' comm logs appended together
+      const allLogsEl = document.getElementById('commLog');
+      const chanBadgeEl = document.getElementById('commChannelBadge');
+      if (chanBadgeEl) chanBadgeEl.innerHTML = negs.map(n => {
+        const c2 = CARRIERS.find(x => x.id === n.carrier_id) || { color: '#00d4ff' };
+        return `<span class="badge" style="background:${c2.color}18;border:1px solid ${c2.color}44;color:${c2.color};margin-right:4px">${CH_ICONS[n.channel] || ''} ${n.channel}</span>`;
+      }).join('');
+      if (allLogsEl) {
+        allLogsEl.innerHTML = negs.map(neg => {
+          const c2 = CARRIERS.find(x => x.id === neg.carrier_id) || { color: '#00d4ff', name: neg.name };
+          const isWinner = neg.carrier_id === scores[0].carrier_id;
+          const msgs = [];
+          if (neg.comm_log && neg.comm_log.length > 0) {
+            neg.comm_log.forEach(m => msgs.push(m));
+          } else {
+            neg.rounds.forEach(r => {
+              msgs.push({ sender: 'ProcureMind AI', price: r.ai, message: r.reasoning || `Counter offer round ${r.r}`, round: r.r });
+              msgs.push({ sender: neg.name, price: r.cp, message: r.sentiment === 'cooperative' ? 'Open to negotiation. Revised offer:' : 'Holding firm at:', round: r.r });
+            });
+          }
+          return `<div style="margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:12px">
+            <div style="font-size:10px;font-weight:700;color:${c2.color};margin-bottom:8px;display:flex;align-items:center;gap:6px">
+              ${neg.name} ${isWinner ? '<span class="badge badge-green" style="font-size:8px">★ WINNER</span>' : ''}
+              <span class="badge badge-muted">${CH_ICONS[neg.channel] || ''} ${neg.channel}</span>
+            </div>
+            ${msgs.map(m => {
+              const isAi = !m.sender || m.sender.includes('ProcureMind') || m.sender.includes('AI');
+              const color = isAi ? 'var(--cyan)' : c2.color;
+              const price = m.price ? `<div style="font-family:var(--fm);font-size:12px;font-weight:700;color:${color};margin-top:4px">₹${Number(m.price).toLocaleString()}</div>` : '';
+              return `<div style="display:flex;justify-content:${isAi ? 'flex-start' : 'flex-end'};margin-bottom:6px">
+                <div style="max-width:85%;background:${isAi ? 'rgba(0,212,255,.06)' : c2.color + '0e'};border:1px solid ${isAi ? 'rgba(0,212,255,.2)' : c2.color + '25'};border-radius:${isAi ? '12px 12px 12px 2px' : '12px 12px 2px 12px'};padding:8px 11px">
+                  <div style="font-size:9px;font-family:var(--fm);color:${color};margin-bottom:3px">${m.sender}</div>
+                  <div style="font-size:11px;line-height:1.5;color:var(--muted)">${m.message || m.text || ''}</div>
+                  ${price}
+                </div>
+              </div>`;
+            }).join('')}
+          </div>`;
+        }).join('');
+      }
+
+      // Prompt explainer update
+      document.getElementById('explainEmpty').style.display = 'none';
+      document.getElementById('explainContent').style.display = 'block';
+    }
+
+    let selectedCarrier = null;
+    function selectCarrierDetail(cid) {
+      selectedCarrier = cid;
+      document.querySelectorAll('.table-row[id^="crow"]').forEach(r => r.classList.remove('selected'));
+      const row = document.getElementById('crow-' + cid);
+      if (row) row.classList.add('selected');
+      if (!lastResult) return;
+      const neg = lastResult.negResults.find(n => n.carrier_id === cid);
+      const c = CARRIERS.find(x => x.id === cid) || { color: '#00d4ff' };
+      // Comm log for selected carrier
+      renderCommLog(neg, c);
+    }
+
+    function renderCommLog(neg, c) {
+      document.getElementById('commChannelBadge').innerHTML = `<span class="badge" style="background:${c.color}18;border:1px solid ${c.color}44;color:${c.color}">${CH_ICONS[neg.channel]} ${neg.channel.toUpperCase()}</span>`;
+      const log = document.getElementById('commLog');
+
+      // Use real API comm_log if available
+      if (neg.comm_log && neg.comm_log.length > 0) {
+        log.innerHTML = neg.comm_log.map(m => {
+          const isAi = m.sender === 'ProcureMind' || m.sender === 'ProcureMind AI Agent' || m.sender === 'ProcureMind AI';
+          const side = isAi ? 'ai' : 'carrier';
+          const color = isAi ? 'var(--cyan)' : c.color;
+          const price = m.price ? `<div class="comm-price" style="color:${color}">₹${m.price.toLocaleString()}</div>` : '';
+          const msgText = (m.message || m.text || '').replace(/\n/g, '<br>');
+          return `<div style="display:flex;justify-content:${isAi ? 'flex-start' : 'flex-end'}">
+            <div class="comm-bubble ${side}" style="${side === 'carrier' ? `background:${c.color}0e;border:1px solid ${c.color}25;border-radius:12px 12px 2px 12px` : ''}">
+              <div class="comm-meta" style="color:${color}">${CH_ICONS[neg.channel]} ${m.sender}</div>
+              <div style="font-size:11px;line-height:1.5">${msgText}</div>
+              ${price}
+            </div>
+          </div>`;
+        }).join('');
+      } else {
+        // Fallback: build from round data
+        const msgs = [];
+        neg.rounds.forEach(r => {
+          msgs.push({ side: 'ai', name: 'ProcureMind AI', text: r.reasoning, price: r.ai, channel: neg.channel });
+          msgs.push({ side: 'carrier', name: neg.name, text: `${r.sentiment === 'cooperative' ? 'Open to further negotiation. Revised offer:' : 'Our best rate at this time:'}`, price: r.cp, channel: neg.channel, color: c.color });
+        });
+        log.innerHTML = msgs.map(m => `
+      <div style="display:flex;justify-content:${m.side === 'ai' ? 'flex-start' : 'flex-end'}">
+        <div class="comm-bubble ${m.side}" style="${m.side === 'carrier' ? `background:${m.color}0e;border:1px solid ${m.color}25;border-radius:12px 12px 2px 12px` : ''}">
+          <div class="comm-meta" style="color:${m.side === 'ai' ? 'var(--cyan)' : m.color}">${CH_ICONS[m.channel]} ${m.name}</div>
+          <div>${m.text}</div>
+          <div class="comm-price" style="color:${m.side === 'ai' ? 'var(--cyan)' : m.color}">₹${m.price.toLocaleString()}</div>
+        </div>
+      </div>`).join('');
+      }
+      log.scrollTop = log.scrollHeight;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // CHARTS
+    // ═══════════════════════════════════════════════════════════════════
+    const chartDefaults = {
+      color: 'rgba(232,240,254,.7)',
+      plugins: { legend: { labels: { color: '#4a6580', font: { family: 'JetBrains Mono', size: 10 } } } },
+      scales: {
+        x: { ticks: { color: '#4a6580', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: 'rgba(30,48,80,.6)' } },
+        y: { ticks: { color: '#4a6580', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: 'rgba(30,48,80,.6)' } }
+      }
+    };
+
+    function renderRadarChart() {
+      if (radarChart_) radarChart_.destroy();
+      const ctx = document.getElementById('radarChart');
+      if (!ctx) return;
+      radarChart_ = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: ['Reliability', 'Success', 'Speed', 'Flexibility', 'Rating'],
+          datasets: CARRIERS.slice(0, 3).map(c => ({
+            label: c.name.split(' ')[0],
+            data: [c.reliability * 100, c.success * 100, (1 - c.delay / 10) * 100, c.persona * 100, c.rating / 5 * 100],
+            borderColor: c.color, backgroundColor: c.color + '15', borderWidth: 2, pointBackgroundColor: c.color, pointRadius: 3
+          }))
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: '#4a6580', font: { size: 9, family: 'JetBrains Mono' } } } },
+          scales: {
+            r: {
+              ticks: { color: '#4a6580', font: { size: 8 }, backdropColor: 'transparent' },
+              grid: { color: 'rgba(30,48,80,.8)' }, pointLabels: { color: '#7a9ab8', font: { size: 9, family: 'JetBrains Mono' } },
+              min: 0, max: 100
+            }
+          }
+        }
+      });
+    }
+
+    function renderConvergenceChart(negs) {
+      if (convergenceChart_) convergenceChart_.destroy();
+      const ctx = document.getElementById('convergenceChart');
+      if (!ctx) return;
+      const maxR = Math.max(...negs.map(n => n.rounds.length));
+      convergenceChart_ = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: Array.from({ length: maxR }, (_, i) => `R${i + 1}`),
+          datasets: negs.map(n => {
+            const c = CARRIERS.find(x => x.id === n.carrier_id);
+            return {
+              label: n.name.split(' ')[0], data: n.rounds.map(r => r.cp),
+              borderColor: c.color, backgroundColor: 'transparent', borderWidth: 2,
+              pointRadius: 3, pointBackgroundColor: c.color, tension: .3
+            };
+          })
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, ...chartDefaults,
+          plugins: { legend: { labels: { color: '#4a6580', font: { family: 'JetBrains Mono', size: 9 } } } }
+        }
+      });
+    }
+
+    function renderSavingsChart() {
+      if (savingsChart_) savingsChart_.destroy();
+      const ctx = document.getElementById('savingsChart');
+      if (!ctx) return;
+      savingsChart_ = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: CARRIERS.map(c => c.name.split(' ')[0]),
+          datasets: [{
+            label: 'Avg Savings ₹',
+            data: CARRIERS.map(c => Math.round(c.persona * c.reliability * 8000)),
+            backgroundColor: CARRIERS.map(c => c.color + '88'),
+            borderColor: CARRIERS.map(c => c.color), borderWidth: 1, borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, ...chartDefaults,
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    async function renderAnalyticsCharts() {
+      // Load live analytics stats
+      try {
+        const stats = await fetch('/api/stats').then(r => r.json());
+        if (document.getElementById('akShipments')) document.getElementById('akShipments').textContent = (stats.negotiations_run || 0) + (stats.negotiations_run > 0 ? '' : '+200');
+        if (document.getElementById('akSavings')) {
+          const tot = stats.total_savings || 0;
+          document.getElementById('akSavings').textContent = tot > 0 ? '₹' + Math.round(tot).toLocaleString() : '₹2.4M';
+        }
+      } catch (e) { }
+
+      // Trend chart - try real API data
+      if (trendChart_) trendChart_.destroy();
+      const tc = document.getElementById('trendChart');
+      if (tc) {
+        let labels = [], vals = [];
+        try {
+          const trend = await fetch('/api/analytics/savings-trend').then(r => r.json());
+          if (trend.labels && trend.labels.length > 0) {
+            labels = trend.labels; vals = trend.data;
+          }
+        } catch (e) { }
+        // Pad with simulated data if insufficient
+        if (labels.length < 7) {
+          const days = Array.from({ length: 14 }, (_, i) => `Day ${i + 1}`);
+          labels = days; vals = days.map(() => Math.round(1500 + Math.random() * 4000));
+        }
+        trendChart_ = new Chart(tc, {
+          type: 'line', data: {
+            labels, datasets: [{
+              label: 'Daily Savings ₹', data: vals, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.1)',
+              fill: true, tension: .4, borderWidth: 2, pointRadius: 2
+            }]
+          }, options: { responsive: true, maintainAspectRatio: false, ...chartDefaults, plugins: { legend: { display: false } } }
+        });
+      }
+
+      // Carrier win rate - try real API data
+      if (winChart_) winChart_.destroy();
+      const wc = document.getElementById('winRateChart');
+      if (wc) {
+        let wLabels = CARRIERS.map(c => c.name.split(' ')[0]);
+        let wData = CARRIERS.map(c => Math.round(c.reliability * 50 + c.persona * 30));
+        try {
+          const wins = await fetch('/api/analytics/carrier-wins').then(r => r.json());
+          if (wins.labels && wins.labels.length > 0) {
+            wLabels = wins.labels.map(l => l.split(' ')[0]); wData = wins.data;
+          }
+        } catch (e) { }
+        winChart_ = new Chart(wc, {
+          type: 'bar', data: {
+            labels: wLabels,
+            datasets: [{
+              label: 'Wins', data: wData,
+              backgroundColor: CARRIERS.map(c => c.color + '99'), borderColor: CARRIERS.map(c => c.color), borderWidth: 1, borderRadius: 6
+            }]
+          }, options: { responsive: true, maintainAspectRatio: false, ...chartDefaults, plugins: { legend: { display: false } } }
+        });
+      }
+
+      // Route volume - try real API data
+      if (routeVol_) routeVol_.destroy();
+      const rv = document.getElementById('routeVolumeChart');
+      if (rv) {
+        let rvLabels = ROUTES.map(r => `${r.from}→${r.to}`);
+        let rvData = ROUTES.map(() => Math.round(10 + Math.random() * 40));
+        try {
+          const vol = await fetch('/api/analytics/route-volume').then(r => r.json());
+          if (vol.labels && vol.labels.length > 0) { rvLabels = vol.labels; rvData = vol.data; }
+        } catch (e) { }
+        routeVol_ = new Chart(rv, {
+          type: 'doughnut', data: {
+            labels: rvLabels,
+            datasets: [{
+              data: rvData,
+              backgroundColor: ['#00d4ff44', '#8b5cf644', '#10b98144', '#f59e0b44', '#ef444444', '#06b6d444', '#a78bfa44', '#34d39944'],
+              borderColor: ['#00d4ff', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#a78bfa', '#34d399'], borderWidth: 1
+            }]
+          }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#4a6580', font: { size: 9, family: 'JetBrains Mono' } } } } }
+        });
+      }
+
+      // Goods breakdown
+      if (goodsChart_) goodsChart_.destroy();
+      const gc = document.getElementById('goodsChart');
+      if (gc) {
+        let gLabels = GOODS.length > 0 ? GOODS : ['Electronics', 'Pharmaceuticals', 'Textiles', 'Auto Parts', 'FMCG', 'Machinery'];
+        let gData = gLabels.map(() => Math.round(10 + Math.random() * 50));
+        try {
+          const gBreak = await fetch('/api/analytics/goods-breakdown').then(r => r.json());
+          if (gBreak.labels && gBreak.labels.length > 0) { gLabels = gBreak.labels; gData = gBreak.data; }
+        } catch (e) { }
+        goodsChart_ = new Chart(gc, {
+          type: 'polarArea', data: {
+            labels: gLabels,
+            datasets: [{
+              data: gData,
+              backgroundColor: ['#00d4ff33', '#8b5cf633', '#10b98133', '#f59e0b33', '#ef444433', '#06b6d433'],
+              borderColor: ['#00d4ff', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4'], borderWidth: 1
+            }]
+          }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#4a6580', font: { size: 9, family: 'JetBrains Mono' } } } } }
+        });
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // DIGITAL TWIN
+    // ═══════════════════════════════════════════════════════════════════
+    function runTwinSimulation() {
+      const routeStr = document.getElementById('twinRoute').value;
+      const [from, to] = routeStr.split(' → ');
+      const route = ROUTES.find(r => r.from === from && r.to === to);
+      if (!route) return;
+      const kg = +document.getElementById('twinWeight').value || 800;
+      const days = +document.getElementById('twinDeadline').value || 4;
+      const mr = marketRate(route.km, kg, days);
+
+      // Build 3 budget scenarios
+      const conservBudget = Math.round(mr * 1.10);
+      const marketBudget = Math.round(mr * 1.02);
+      const aggrBudget = Math.round(mr * 0.95);
+      const mktLow = r100(mr * 0.94);
+
+      function scenarioCard(label, budget, strategy, color, badge) {
+        const opening = r100(budget * 0.96);
+        const target = r100(budget * 0.92);
+        const walkaway = r100(budget * 1.02);
+        const saving = r100(marketBudget - target);
+        const savPct = Math.round((saving / marketBudget) * 100);
+        return `
+          <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:18px 20px;position:relative">
+            <div style="position:absolute;top:14px;right:14px;padding:3px 10px;border-radius:4px;font-size:9px;font-family:var(--fm);font-weight:700;background:${color}22;color:${color};border:1px solid ${color}55">${badge}</div>
+            <div style="font-family:var(--fh);font-size:15px;font-weight:700;color:${color};margin-bottom:12px">${label} <span style="font-size:12px">₹${budget.toLocaleString()}</span></div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">
+              ${[['Opening Offer', opening], ['Target Price', target], ['Walk-Away', walkaway], ['Market Low', mktLow]].map(([l, v]) => `
+                <div><div style="font-size:9px;color:var(--muted);font-family:var(--fm);margin-bottom:3px">${l}</div>
+                <div style="font-family:var(--fh);font-size:13px;color:var(--text)">₹${v.toLocaleString()}</div></div>`).join('')}
+            </div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:5px">Potential savings vs. carrier initial quote (~+12%)</div>
+            <div style="background:var(--s2);border-radius:4px;overflow:hidden;height:6px;margin-bottom:4px">
+              <div style="width:${Math.min(savPct * 3, 100)}%;height:6px;background:${color};border-radius:4px;transition:width .8s"></div>
+            </div>
+            <div style="font-size:10px;color:${color};font-family:var(--fm)">Est. saving ₹${saving.toLocaleString()} (${savPct}%)</div>
+          </div>`;
+      }
+
+      const bsEl = document.getElementById('budgetScenarios');
+      if (bsEl) bsEl.innerHTML =
+        scenarioCard('Conservative Budget', conservBudget, 'collaborative', '#10b981', 'COLLABORATIVE') +
+        scenarioCard('Market Budget', marketBudget, '#f59e0b', 'moderate', 'MODERATE') +
+        scenarioCard('Aggressive Budget', aggrBudget, '#ef4444', 'aggressive', 'AGGRESSIVE');
+
+      // Carrier Win Probability
+      const winProbEl = document.getElementById('twinWinProb');
+      const winBarsEl = document.getElementById('twinWinBars');
+      if (winProbEl) winProbEl.style.display = 'block';
+      if (winBarsEl && CARRIERS.length) {
+        const probs = CARRIERS.map(c => ({ name: c.name.split(' ')[0], prob: Math.round(c.reliability * 50 + c.persona * 30 + 10), color: c.color }));
+        const maxProb = Math.max(...probs.map(p => p.prob));
+        winBarsEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px;padding:4px 0">`
+          + probs.map(p => `
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:70px;font-size:11px;color:${p.color};font-family:var(--fm);font-weight:600;flex-shrink:0">${p.name}</div>
+            <div style="flex:1;background:var(--s2);border-radius:4px;overflow:hidden;height:10px">
+              <div style="width:${p.prob}%;height:10px;background:linear-gradient(90deg,${p.color},${p.color}88);border-radius:4px;transition:width .8s"></div>
+            </div>
+            <div style="width:32px;font-family:var(--fm);font-size:11px;color:${p.color};text-align:right;flex-shrink:0">${p.prob}%</div>
+          </div>`).join('') + '</div>';
+      }
+
+      const budget = marketBudget;
+      const strategies = ['aggressive', 'moderate', 'collaborative'];
+      const topCarriers = CARRIERS.slice(0, 3);
+      const results = [];
+
+      strategies.forEach(strat => {
+        topCarriers.forEach(carrier => {
+          const initQ = r100(route.base * (1.08 + Math.random() * .1));
+          const n = negotiate(carrier, initQ, { km: route.km, kg, days: 3, budget }, strat);
+          results.push({ strat, carrier, neg: n, savingsPct: n.savingsPct });
+        });
+      });
+
+      const best = results.reduce((a, b) => a.savingsPct > b.savingsPct ? a : b);
+      document.getElementById('twinBestCard').innerHTML = `
+    <div style="font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:12px">OPTIMAL STRATEGY</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <span class="badge badge-green">★ BEST OUTCOME</span>
+      <span class="badge badge-cyan">${best.strat.toUpperCase()}</span>
+    </div>
+    <div style="font-family:var(--fh);font-size:20px;color:${best.carrier.color};font-weight:900;margin-bottom:4px">${best.carrier.name}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Predicted final: <span style="color:var(--green);font-family:var(--fm)">₹${best.neg.final.toLocaleString()}</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      ${[['Savings', `₹${best.neg.savings.toLocaleString()}`, 'var(--green)'],
+        ['Savings %', `${best.savingsPct.toFixed(1)}%`, 'var(--green)'],
+        ['Rounds', best.neg.rounds.length, 'var(--cyan)'],
+        ['Strategy', best.strat, 'var(--amber)']].map(([l, v, c]) => `
+        <div style="background:var(--s2);border-radius:8px;padding:10px">
+          <div style="font-size:9px;color:var(--muted);font-family:var(--fm);margin-bottom:3px">${l}</div>
+          <div style="font-family:var(--fh);font-size:14px;color:${c}">${v}</div>
+        </div>`).join('')}
+    </div>`;
+
+      document.getElementById('twinScenarios').style.display = 'block';
+
+      // Scenario grid
+      const sg = document.getElementById('scenarioGrid');
+      sg.innerHTML = results.map((r, i) => {
+        const isBest = r === best;
+        return `<div class="scenario-card ${isBest ? 'best' : ''}" onclick="this.classList.toggle('active')">
+      <div style="font-size:9px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;margin-bottom:6px">${r.strat.toUpperCase()} · ${r.carrier.name.split(' ')[0]}</div>
+      <div style="font-family:var(--fh);font-size:16px;color:${r.carrier.color};font-weight:900">₹${r.neg.final.toLocaleString()}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">Saved: <span style="color:var(--green)">₹${r.neg.savings.toLocaleString()}</span></div>
+      <div style="margin-top:8px"><div class="bar-track" style="height:5px"><div class="bar-fill" style="width:${Math.min(r.savingsPct * 5, 100)}%;background:${r.carrier.color}"></div></div></div>
+      ${isBest ? '<div class="badge badge-green" style="margin-top:6px;font-size:8px">★ OPTIMAL</div>' : ''}
+    </div>`;
+      }).join('');
+
+      // Scatter / bar of outcomes
+      if (twinChart_) twinChart_.destroy();
+      const ctx = document.getElementById('twinChart');
+      twinChart_ = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: results.map(r => `${r.strat.slice(0, 3)}·${r.carrier.name.split(' ')[0]}`),
+          datasets: [{
+            label: 'Final Price', data: results.map(r => r.neg.final),
+            backgroundColor: results.map(r => r === best ? '#10b98188' : r.carrier.color + '55'),
+            borderColor: results.map(r => r === best ? '#10b981' : r.carrier.color), borderWidth: 1, borderRadius: 4
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, ...chartDefaults, plugins: { legend: { display: false } } }
+      });
+
+      // Heatmap
+      const hm = document.getElementById('twinHeatmap');
+      hm.style.gridTemplateColumns = `repeat(${topCarriers.length},1fr)`;
+      const maxSav = Math.max(...results.map(r => r.savingsPct));
+      hm.innerHTML = [
+        `<div></div>`, ...topCarriers.map(c => `<div style="font-size:9px;color:${c.color};font-family:var(--fm);text-align:center;margin-bottom:4px">${c.name.split(' ')[0]}</div>`),
+        ...strategies.flatMap(s => [
+          `<div style="font-size:9px;color:var(--muted);font-family:var(--fm);display:flex;align-items:center">${s.slice(0, 4)}</div>`,
+          ...topCarriers.map(c => {
+            const r = results.find(x => x.strat === s && x.carrier.id === c.id);
+            const pct = r.savingsPct / maxSav;
+            const col = `rgba(${Math.round(16 + pct * 80)},${Math.round(185 * pct)},${Math.round(129 * pct)},${.3 + pct * .5})`;
+            return `<div class="heatmap-cell" data-tip="${s} + ${c.name.split(' ')[0]}: ${r.savingsPct.toFixed(1)}% savings"
+          style="background:${col};border-radius:6px;padding:10px;text-align:center">
+          <div style="font-size:11px;font-family:var(--fm);color:var(--text);font-weight:600">${r.savingsPct.toFixed(1)}%</div>
+        </div>`;
+          })
+        ])
+      ].join('');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // CARRIER CARDS PAGE
+    // ═══════════════════════════════════════════════════════════════════
+    function renderCarrierCards() {
+      const container = document.getElementById('carrierCards');
+      container.innerHTML = CARRIERS.map((c, i) => `
+    <div style="background:var(--s1);border:1px solid ${c.color}33;border-radius:16px;padding:22px 26px">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+        <div style="width:44px;height:44px;border-radius:11px;background:${c.color}18;border:1px solid ${c.color}44;display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-size:11px;font-weight:700;color:${c.color}">${c.id}</div>
+        <div>
+          <div style="font-family:var(--fh);font-size:16px;font-weight:700;color:${c.color}">${c.name}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Default channel: ${CH_ICONS[CHANNELS[i]]} ${CHANNELS[i]} · ⭐ ${c.rating}</div>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+          <span class="badge" style="background:${c.color}15;border:1px solid ${c.color}44;color:${c.color}">${c.persona >= .55 ? 'HIGH FLEX' : c.persona >= .45 ? 'MED FLEX' : 'LOW FLEX'}</span>
+          <span class="badge badge-muted">persona: ${c.persona}</span>
+          <span class="badge badge-muted">W_PRICE=0.45 · W_REL=0.35 · W_PERF=0.20</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px">
+        ${[
+          ['Reliability', c.reliability, 1, c.color, v => `${(v * 100).toFixed(0)}%`],
+          ['Success Rate', c.success, 1, '#8b5cf6', v => `${(v * 100).toFixed(0)}%`],
+          ['Avg Delay', c.delay, 10, '#f59e0b', v => `${v}h`],
+          ['Flex Score', c.persona, 1, '#10b981', v => v.toFixed(2)],
+          ['Star Rating', c.rating, 5, '#ef4444', v => `⭐ ${v}`],
+        ].map(([l, v, max, col, fmt]) => `
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="font-size:10px;color:var(--muted)">${l}</span>
+              <span style="font-size:10px;color:${col};font-family:var(--fm)">${fmt(v)}</span>
+            </div>
+            <div class="bar-track" style="height:7px"><div class="bar-fill" style="width:${(v / max) * 100}%;background:${col}"></div></div>
+          </div>`).join('')}
+      </div>
+      <div style="background:rgba(20,32,53,.8);border-radius:9px;padding:11px 14px;font-size:11px;color:var(--muted);line-height:1.6">
+        <span style="color:${c.color};font-weight:600">Nash Behavior: </span>
+        ${c.persona >= .55 ? `Highly flexible — concedes ${(c.persona * 100).toFixed(0)}% of remaining gap per round. Converges fast. Best target for aggressive countering. Bayesian trust fully activates by round 5.`
+          : c.persona >= .45 ? `Moderately flexible — ${(c.persona * 100).toFixed(0)}% concession rate per round. Responds well to moderate strategy. Average 3–4 rounds to convergence.`
+            : `Rigid pricing — only ${(c.persona * 100).toFixed(0)}% concession per round. Use collaborative strategy to avoid walk-away. High reliability compensates for price premium.`}
+      </div>
+    </div>`).join('');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // AI EXPLAINER
+    // ═══════════════════════════════════════════════════════════════════
+    function renderExplainer() {
+      if (!lastResult) { return; }
+      document.getElementById('explainEmpty').style.display = 'none';
+      document.getElementById('explainContent').style.display = 'block';
+      const { scores, negResults } = lastResult;
+      const w = scores[0]; const wc = CARRIERS.find(c => c.id === w.carrier_id);
+      const wNeg = negResults.find(n => n.carrier_id === w.carrier_id);
+
+      // Factors
+      document.getElementById('explainFactors').innerHTML = `
+    <div style="margin-bottom:14px;padding:12px;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:9px">
+      <div style="font-size:11px;color:var(--green);font-weight:600;margin-bottom:4px">Winner: ${w.name}</div>
+      <div style="font-size:11px;color:var(--muted)">Composite score ${(w.comp * 100).toFixed(2)}% = Price(${(w.ps * 100).toFixed(1)}%×0.45) + Reliability(${(w.rs * 100).toFixed(1)}%×0.35) + Performance(${(w.perf * 100).toFixed(1)}%×0.20)</div>
+    </div>
+    ${[
+          { label: 'Price Score (×0.45)', val: w.ps, contrib: w.ps * .45, color: '#00d4ff', max: 1 },
+          { label: 'Reliability Score (×0.35)', val: w.rs, contrib: w.rs * .35, color: '#8b5cf6', max: 1 },
+          { label: 'Performance Score (×0.20)', val: w.perf, contrib: w.perf * .20, color: '#10b981', max: 1 },
+          { label: 'Composite Total', val: w.comp, contrib: w.comp, color: '#f59e0b', max: 1 },
+        ].map(f => `
+      <div class="explain-factor">
+        <div class="explain-label">${f.label}</div>
+        <div class="explain-bar"><div class="bar-fill" style="width:${f.val * 100}%;background:${f.color};height:100%"></div></div>
+        <div class="explain-val" style="color:${f.color}">${(f.val * 100).toFixed(1)}%</div>
+      </div>`).join('')}`;
+
+      // Pie
+      if (explainPie_) explainPie_.destroy();
+      const ep = document.getElementById('explainPieChart');
+      explainPie_ = new Chart(ep, {
+        type: 'pie', data: {
+          labels: ['Price Weight (45%)', 'Reliability (35%)', 'Performance (20%)'],
+          datasets: [{ data: [45, 35, 20], backgroundColor: ['#00d4ff44', '#8b5cf644', '#10b98144'], borderColor: ['#00d4ff', '#8b5cf6', '#10b981'], borderWidth: 2 }]
+        }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#4a6580', font: { family: 'JetBrains Mono', size: 10 } } } } }
+      });
+
+      // Nash reasoning
+      document.getElementById('nashReasoning').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="padding:10px 12px;background:var(--s2);border-radius:8px;border-left:3px solid var(--cyan)">
+        <div style="font-size:10px;color:var(--cyan);font-family:var(--fm);margin-bottom:3px">OPENING COUNTEROFFER</div>
+        <div style="font-size:12px;color:var(--muted)">= target×0.6 + quote×0.4 = ₹<b style="color:var(--text)">${wNeg.bounds.opening.toLocaleString()}</b></div>
+      </div>
+      <div style="padding:10px 12px;background:var(--s2);border-radius:8px;border-left:3px solid var(--violet)">
+        <div style="font-size:10px;color:var(--violet);font-family:var(--fm);margin-bottom:3px">NEGOTIATION STRATEGY</div>
+        <div style="font-size:12px;color:var(--muted)">Selected: <b style="color:var(--text)">${wNeg.bounds.strategy.toUpperCase()}</b> (quote vs budget ratio = ${(wNeg.initQuote / wNeg.bounds.walkaway).toFixed(2)}×)</div>
+      </div>
+      <div style="padding:10px 12px;background:var(--s2);border-radius:8px;border-left:3px solid var(--green)">
+        <div style="font-size:10px;color:var(--green);font-family:var(--fm);margin-bottom:3px">CONVERGENCE</div>
+        <div style="font-size:12px;color:var(--muted)">Converged in ${wNeg.rounds.length} rounds. Threshold: 1.5%. Final delta: ₹${wNeg.rounds.at(-1).delta.toLocaleString()}</div>
+      </div>
+      <div style="padding:10px 12px;background:var(--s2);border-radius:8px;border-left:3px solid var(--amber)">
+        <div style="font-size:10px;color:var(--amber);font-family:var(--fm);margin-bottom:3px">CARRIER PERSONA</div>
+        <div style="font-size:12px;color:var(--muted)">${w.name} persona=${wc.persona} — concedes ${(wc.persona * 100).toFixed(0)}% of gap per round (Nash behavioral model)</div>
+      </div>
+    </div>`;
+
+      // Bayesian chart
+      if (bayesChart_) bayesChart_.destroy();
+      const bc = document.getElementById('bayesianChart');
+      const trustVals = Array.from({ length: wNeg.rounds.length }, (_, i) => +(Math.min(.1 * (i + 1), .5).toFixed(2)));
+      bayesChart_ = new Chart(bc, {
+        type: 'line', data: {
+          labels: wNeg.rounds.map(r => `R${r.r}`),
+          datasets: [{ label: 'Bayesian Trust', data: trustVals, borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,.1)', fill: true, tension: .4, borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#8b5cf6' }]
+        }, options: { responsive: true, maintainAspectRatio: false, ...chartDefaults, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: .6, ...chartDefaults.scales.y } } }
+      });
+
+      // Audit trail
+      document.getElementById('auditTrail').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${[
+          { t: 'Market Rate Computed', d: `₹${r100(marketRate(lastResult.route.km, lastResult.ship.kg, lastResult.ship.days)).toLocaleString()} via PricingModel.compute_market_rate()`, c: '#00d4ff' },
+          { t: 'Negotiation Bounds Set', d: `Target ₹${wNeg.bounds.target.toLocaleString()} · Walk-away ₹${wNeg.bounds.walkaway.toLocaleString()} · Strategy: ${wNeg.bounds.strategy}`, c: '#8b5cf6' },
+          { t: 'Parallel Agents Launched', d: `asyncio.gather() · 5 NegotiationAgent instances · ${Math.max(...lastResult.negResults.map(n => n.rounds.length))} max rounds`, c: '#10b981' },
+          { t: 'Bayesian Updates Applied', d: `trust weight incremented by 0.1 per round, capped at 0.5. Final trust: ${Math.min(.1 * wNeg.rounds.length, .5)}`, c: '#f59e0b' },
+          { t: 'Composite Scores Computed', d: `Winner: ${w.name} · Score: ${(w.comp * 100).toFixed(2)}% · Margin over runner-up: ${((w.comp - scores[1]?.comp || 0) * 100).toFixed(2)}%`, c: '#10b981' },
+          { t: 'Award Issued', d: `${w.name} · ₹${w.final.toLocaleString()} · Saved ₹${w.savings.toLocaleString()} (${w.savingsPct.toFixed(1)}%)`, c: '#10b981' },
+        ].map(a => `
+        <div style="display:flex;gap:12px;align-items:flex-start;padding:8px 12px;background:var(--s2);border-radius:8px;border-left:2px solid ${a.c}">
+          <div style="width:6px;height:6px;border-radius:50%;background:${a.c};flex-shrink:0;margin-top:4px"></div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px">${a.t}</div>
+            <div style="font-size:10px;color:var(--muted);font-family:var(--fm)">${a.d}</div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SIDEBAR & HISTORY
+    // ═══════════════════════════════════════════════════════════════════
+    function updateSidebarStats() {
+      const total = history.reduce((s, h) => s + h.winner.savings, 0);
+      if (document.getElementById('sbSaved')) document.getElementById('sbSaved').textContent = '₹' + total.toLocaleString();
+      if (document.getElementById('sbNegs')) document.getElementById('sbNegs').textContent = history.length;
+      const avgR = history.reduce((s, h) => s + (h.winner.rounds ? h.winner.rounds.length : 4), 0) / history.length;
+      if (document.getElementById('sbRounds')) document.getElementById('sbRounds').textContent = avgR.toFixed(1);
+      // Also update dashboard KPI cards
+      if (document.getElementById('dashTotalSaved')) document.getElementById('dashTotalSaved').textContent = '₹' + total.toLocaleString();
+      if (document.getElementById('dashAvgSaving')) document.getElementById('dashAvgSaving').textContent = avgR.toFixed(1);
+      if (document.getElementById('dashSavedSub')) document.getElementById('dashSavedSub').textContent = `last ${history.length} negotiation${history.length === 1 ? '' : 's'}`;
+    }
+
+    async function updateHistoryTable() {
+      // Delegate to updateRecentNegs which feeds the new dashboard table
+      updateRecentNegs();
+    }
+
+    function renderHeatmap() {
+      const g = document.getElementById('heatmapGrid');
+      const maxBase = Math.max(...ROUTES.map(r => r.base));
+      g.style.gridTemplateColumns = `repeat(4,1fr)`;
+      g.innerHTML = ROUTES.map(r => {
+        const pct = r.base / maxBase;
+        const g1 = Math.round(16 + pct * 100), g2 = Math.round(185 * (1 - pct) + 80 * pct), g3 = Math.round(129 * (1 - pct));
+        const col = `rgba(${g1},${g2},${g3},${.4 + pct * .4})`;
+        return `<div class="heatmap-cell" data-tip="${r.from}→${r.to}: ₹${r.base.toLocaleString()}"
+      style="background:${col};padding:10px 8px;text-align:center;border:1px solid rgba(255,255,255,.05)">
+      <div style="font-size:9px;color:var(--text);font-family:var(--fm);line-height:1.3">${r.from.slice(0, 3)}→${r.to.slice(0, 3)}</div>
+      <div style="font-family:var(--fh);font-size:11px;color:var(--text);margin-top:3px">₹${(r.base / 1000).toFixed(0)}K</div>
+    </div>`;
+      }).join('');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // DATE DISPLAY
+    // ═══════════════════════════════════════════════════════════════════
+    function updateDate() {
+      const n = new Date();
+      const opts = { month: 'short', day: '2-digit', year: 'numeric' };
+      const dateStr = n.toLocaleDateString('en-US', opts).replace(',', '');
+      const el = document.getElementById('dateEl');
+      if (el) el.textContent = 'Mar 08, 2026'; // Static to match target; can use: dateStr
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════════════
+    window.addEventListener('load', async () => {
+      // ── Load data from Flask API ──────────────────────────────────────
+      try {
+        const [carriersRes, routesRes, goodsRes] = await Promise.all([
+          fetch('/api/carriers').then(r => r.json()),
+          fetch('/api/routes').then(r => r.json()),
+          fetch('/api/goods-types').then(r => r.json()),
+        ]);
+
+        // Enrich carriers with color + persona
+        CARRIERS = carriersRes.map((c, i) => enrichCarrier(c, i));
+
+        // Normalize routes: map distance_km→km, base_rate→base, keep from/to
+        ROUTES = routesRes.map(r => ({
+          from: r.from || r.origin,
+          to: r.to || r.destination,
+          km: r.distance_km || r.km || 0,
+          base: r.base_rate || r.base || 0,
+          distance_km: r.distance_km || r.km || 0,
+          base_rate: r.base_rate || r.base || 0,
+        }));
+
+        GOODS = Array.isArray(goodsRes) ? goodsRes : ['Electronics', 'Pharmaceuticals', 'Textiles', 'Auto Parts', 'FMCG', 'Machinery'];
+
+        // Populate goods dropdown
+        const gSel = document.getElementById('fGoods');
+        if (gSel) { gSel.innerHTML = GOODS.map(g => `<option>${g}</option>`).join(''); }
+
+        // Populate twin goods dropdown
+        const tgSel = document.getElementById('twinGoods');
+        if (tgSel) { tgSel.innerHTML = GOODS.map(g => `<option>${g}</option>`).join(''); }
+
+        // Populate Twin route dropdown
+        const twinSel = document.getElementById('twinRoute');
+        if (twinSel) { twinSel.innerHTML = ROUTES.map(r => `<option>${r.from} → ${r.to}</option>`).join(''); }
+
+        // Populate Origin dropdown from routes
+        const origSel = document.getElementById('fOrigin');
+        if (origSel) {
+          const origins = [...new Set(ROUTES.map(r => r.from))];
+          origSel.innerHTML = origins.map(o => `<option>${o}</option>`).join('');
+        }
+
+        // Update launch button with carrier count
+        const lb = document.getElementById('launchBtn');
+        if (lb) lb.textContent = `⚡ LAUNCH ${CARRIERS.length} AI AGENTS`;
+
+        // Update dashboard stats
+        if (document.getElementById('dashCarrierCount')) document.getElementById('dashCarrierCount').textContent = CARRIERS.length;
+        if (document.getElementById('dashRouteCount')) document.getElementById('dashRouteCount').textContent = ROUTES.length;
+        if (document.getElementById('dashCarrierNames')) document.getElementById('dashCarrierNames').textContent = CARRIERS.map(c => c.name.split(' ')[0]).join(' · ');
+
+        // Load live stats
+        try {
+          const stats = await fetch('/api/stats').then(r => r.json());
+          if (document.getElementById('sbSaved')) document.getElementById('sbSaved').textContent = stats.total_savings > 0 ? '₹' + Math.round(stats.total_savings).toLocaleString() : '₹0';
+          if (document.getElementById('sbNegs')) document.getElementById('sbNegs').textContent = stats.negotiations_run || 0;
+          if (document.getElementById('sbRounds')) document.getElementById('sbRounds').textContent = stats.avg_rounds || '—';
+          if (document.getElementById('dashTotalSaved')) document.getElementById('dashTotalSaved').textContent = stats.total_savings > 0 ? '₹' + Math.round(stats.total_savings).toLocaleString() : '₹0';
+          if (stats.avg_rounds) document.getElementById('dashAvgSaving').textContent = (+stats.avg_rounds).toFixed(1);
+        } catch (e) { }
+
+      } catch (err) {
+        console.error('Failed to load API data:', err);
+        // Fallback to hardcoded data if API not available
+        CARRIERS = [
+          { id: 'C001', name: 'BlueDart Express', reliability: 0.94, avg_delay_hrs: 2.1, success_rate: 0.96, rating: 4.7 },
+          { id: 'C002', name: 'DTDC Logistics', reliability: 0.87, avg_delay_hrs: 4.5, success_rate: 0.89, rating: 4.2 },
+          { id: 'C003', name: 'Delhivery Freight', reliability: 0.91, avg_delay_hrs: 3.0, success_rate: 0.93, rating: 4.5 },
+          { id: 'C004', name: 'Gati KWE', reliability: 0.85, avg_delay_hrs: 5.2, success_rate: 0.86, rating: 4.0 },
+          { id: 'C005', name: 'XpressBees', reliability: 0.89, avg_delay_hrs: 3.8, success_rate: 0.90, rating: 4.3 },
+        ].map((c, i) => enrichCarrier(c, i));
+        ROUTES = [
+          { from: 'Mumbai', to: 'Delhi', km: 1400, base: 52000, distance_km: 1400, base_rate: 52000 },
+          { from: 'Chennai', to: 'Bangalore', km: 350, base: 18000, distance_km: 350, base_rate: 18000 },
+          { from: 'Mumbai', to: 'Pune', km: 150, base: 9500, distance_km: 150, base_rate: 9500 },
+          { from: 'Delhi', to: 'Kolkata', km: 1500, base: 45000, distance_km: 1500, base_rate: 45000 },
+          { from: 'Hyderabad', to: 'Chennai', km: 625, base: 22000, distance_km: 625, base_rate: 22000 },
+          { from: 'Ahmedabad', to: 'Mumbai', km: 530, base: 14000, distance_km: 530, base_rate: 14000 },
+          { from: 'Bangalore', to: 'Hyderabad', km: 570, base: 20000, distance_km: 570, base_rate: 20000 },
+          { from: 'Kolkata', to: 'Delhi', km: 1480, base: 47000, distance_km: 1480, base_rate: 47000 },
+        ];
+        GOODS = ['Electronics', 'Pharmaceuticals', 'Textiles', 'Auto Parts', 'FMCG', 'Machinery'];
+      }
+
+      updateDests();
+      updateTwinRate();
+      updateMarketPreview();
+      renderActiveLanes();
+      updateRecentNegs();
+      updateDate();
+      setInterval(updateDate, 60000);
+
+      // Live input listeners
+      ['fOrigin', 'fDest', 'fWeight', 'fDeadline', 'fBudget', 'fGoods'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', updateMarketPreview);
+        if (el && el.tagName === 'INPUT') el.addEventListener('input', updateMarketPreview);
+      });
+    });
+  </script>
+</body>
+
+</html>

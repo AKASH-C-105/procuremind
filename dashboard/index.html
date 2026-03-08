@@ -336,12 +336,16 @@
 
     .page {
       display: none;
-      padding: 28px 32px
+      padding: 28px 32px;
+      height: calc(100vh - 58px);
+      overflow-y: auto;
+      overflow-x: hidden
     }
 
     .page.active {
       display: block
     }
+
 
     /* CARDS */
     .card {

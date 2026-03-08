@@ -2170,149 +2170,148 @@
 
       try {
 
-      // Build pipeline
-      const steps = [
-        { label: 'PricingModel.compute_market_rate()', sub: `${route.km}km · ${kg}kg · ${days}d deadline` },
-        { label: 'compute_negotiation_bounds()', sub: `Budget ₹${budget.toLocaleString()} · Strategy: ${selectedStrategy}` },
-        { label: 'Generating carrier quotes', sub: `5 carriers · markup 5–20% above base ₹${route.base.toLocaleString()}` },
-        { label: 'MultiCarrierOrchestrator.run()', sub: 'asyncio.gather() · 5 parallel agents' },
-        { label: 'Bayesian price updates per round', sub: 'trust = min(0.1×round, 0.5)' },
-        { label: 'AwardOptimizer.score_carriers()', sub: 'W_PRICE=0.45 · W_REL=0.35 · W_PERF=0.20' },
-      ];
-      const tl = document.getElementById('pipelineTimeline');
-      tl.innerHTML = steps.map((s, i) => `
+        // Build pipeline
+        const steps = [
+          { label: 'PricingModel.compute_market_rate()', sub: `${route.km}km · ${kg}kg · ${days}d deadline` },
+          { label: 'compute_negotiation_bounds()', sub: `Budget ₹${budget.toLocaleString()} · Strategy: ${selectedStrategy}` },
+          { label: 'Generating carrier quotes', sub: `5 carriers · markup 5–20% above base ₹${route.base.toLocaleString()}` },
+          { label: 'MultiCarrierOrchestrator.run()', sub: 'asyncio.gather() · 5 parallel agents' },
+          { label: 'Bayesian price updates per round', sub: 'trust = min(0.1×round, 0.5)' },
+          { label: 'AwardOptimizer.score_carriers()', sub: 'W_PRICE=0.45 · W_REL=0.35 · W_PERF=0.20' },
+        ];
+        const tl = document.getElementById('pipelineTimeline');
+        tl.innerHTML = steps.map((s, i) => `
     <div class="tl-item" id="tl${i}">
       <div class="tl-dot" id="tldot${i}"></div>
       <div class="tl-title" style="color:var(--muted)">${s.label}</div>
       <div class="tl-sub">${s.sub}</div>
     </div>`).join('');
 
-      const ticker = document.getElementById('negTicker');
-      ticker.innerHTML = '';
+        const ticker = document.getElementById('negTicker');
+        ticker.innerHTML = '';
 
-      // Simulate pipeline step by step
-      const quotes = {};
-      CARRIERS.forEach(c => { quotes[c.id] = r100(route.base * (1.05 + Math.random() * .15)); });
+        // Simulate pipeline step by step
+        const quotes = {};
+        CARRIERS.forEach(c => { quotes[c.id] = r100(route.base * (1.05 + Math.random() * .15)); });
 
-      function addTick(avatar, name, msg, price, color) {
-        const div = document.createElement('div'); div.className = 'neg-msg';
-        div.innerHTML = `<div class="neg-avatar" style="background:${color}22;color:${color}">${avatar}</div>
+        function addTick(avatar, name, msg, price, color) {
+          const div = document.createElement('div'); div.className = 'neg-msg';
+          div.innerHTML = `<div class="neg-avatar" style="background:${color}22;color:${color}">${avatar}</div>
       <div class="neg-content">
         <div class="neg-name" style="color:${color}">${name}</div>
         <div class="neg-text">${msg}</div>
         ${price ? `<div class="neg-price" style="color:${color}">₹${price.toLocaleString()}</div>` : ''}
       </div>`;
-        ticker.appendChild(div);
-        ticker.scrollTop = ticker.scrollHeight;
-      }
-
-      await stepDelay(300);
-      markStep(0, 'done'); markStep(1, 'active');
-      addTick('🧠', 'PricingModel', `Market rate: ₹${r100(marketRate(route.km, kg, days)).toLocaleString()} · Range ±6%`, null, '#00d4ff');
-
-      await stepDelay(500);
-      markStep(1, 'done'); markStep(2, 'active');
-      addTick('⚡', 'StrategyEngine', `Strategy: ${selectedStrategy === 'auto' ? 'auto → ' + computeBounds(route.km, kg, days, budget, route.base).strategy : selectedStrategy} · Opening counter computed`, null, '#8b5cf6');
-
-      await stepDelay(400);
-      markStep(2, 'done'); markStep(3, 'active');
-      CARRIERS.forEach(c => {
-        addTick('📨', c.name, `Initial bid submitted`, quotes[c.id], c.color);
-      });
-      document.getElementById('feedRound').textContent = 'Round 1';
-
-      await stepDelay(500);
-      markStep(3, 'done'); markStep(4, 'active');
-      addTick('🤖', 'NegotiationEngine', 'Running parallel negotiations on server...', null, '#00d4ff');
-
-      // ── ACTUAL API CALL ──
-      let result;
-      try {
-        result = await fetch('/api/negotiate', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ origin: o, destination: dest, weight_kg: kg, goods_type: goods, deadline_days: days, budget_inr: budget })
-        }).then(r => r.json());
-      } catch (err) {
-        alert('Negotiation API failed: ' + err.message);
-        document.getElementById('negLive').style.display = 'none';
-        document.getElementById('negEmpty').style.display = 'block';
-        document.getElementById('launchBtn').disabled = false;
-        document.getElementById('launchBtn').textContent = `⚡ LAUNCH ${CARRIERS.length} AI AGENTS`;
-        return;
-      }
-      if (result.error) {
-        alert('Error: ' + result.error);
-        document.getElementById('negLive').style.display = 'none';
-        document.getElementById('negEmpty').style.display = 'block';
-        document.getElementById('launchBtn').disabled = false;
-        document.getElementById('launchBtn').textContent = `⚡ LAUNCH ${CARRIERS.length} AI AGENTS`;
-        return;
-      }
-
-      // Show live feed from API results
-      for (const neg of result.negotiation) {
-        const c = CARRIERS.find(x => x.id === neg.carrier_id);
-        const color = c ? c.color : '#00d4ff';
-        for (const rd of neg.round_data) {
-          addTick('🤖', 'AI Agent', rd.reasoning || `Counter ₹${rd.ai_offer.toLocaleString()}`, rd.ai_offer, '#00d4ff');
-          addTick((c ? c.name[0] : 'C'), neg.carrier_name, `${rd.sentiment === 'cooperative' ? 'Flexible' : 'Firm'} — ${rd.converged ? '✓ Converged' : '...'}`, rd.carrier_price, color);
+          ticker.appendChild(div);
+          ticker.scrollTop = ticker.scrollHeight;
         }
-      }
 
-      await stepDelay(400);
-      markStep(4, 'done'); markStep(5, 'active');
-      addTick('🏆', 'AwardOptimizer', 'Scoring carriers with weighted composite formula...', null, '#10b981');
-      await stepDelay(500);
-      markStep(5, 'done');
+        await stepDelay(300);
+        markStep(0, 'done'); markStep(1, 'active');
+        addTick('🧠', 'PricingModel', `Market rate: ₹${r100(marketRate(route.km, kg, days)).toLocaleString()} · Range ±6%`, null, '#00d4ff');
 
-      const winner = result.scores.find(s => s.recommended) || result.scores[0];
-      addTick('✅', 'AWARD', `Winner: ${winner.carrier_name} · Score: ${(winner.composite_score * 100).toFixed(1)}%`, winner.final_price, '#10b981');
+        await stepDelay(500);
+        markStep(1, 'done'); markStep(2, 'active');
+        addTick('⚡', 'StrategyEngine', `Strategy: ${selectedStrategy === 'auto' ? 'auto → ' + computeBounds(route.km, kg, days, budget, route.base).strategy : selectedStrategy} · Opening counter computed`, null, '#8b5cf6');
 
-      await stepDelay(600);
-      document.getElementById('negLive').style.display = 'none';
+        await stepDelay(400);
+        markStep(2, 'done'); markStep(3, 'active');
+        CARRIERS.forEach(c => {
+          addTick('📨', c.name, `Initial bid submitted`, quotes[c.id], c.color);
+        });
+        document.getElementById('feedRound').textContent = 'Round 1';
 
-      // Transform API result for showResults
-      const negResults = result.negotiation.map(n => {
-        const c = CARRIERS.find(x => x.id === n.carrier_id);
-        return {
+        await stepDelay(500);
+        markStep(3, 'done'); markStep(4, 'active');
+        addTick('🤖', 'NegotiationEngine', 'Running parallel negotiations on server...', null, '#00d4ff');
+
+        // ── ACTUAL API CALL ──
+        let result;
+        try {
+          result = await fetch('/api/negotiate', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ origin: o, destination: dest, weight_kg: kg, goods_type: goods, deadline_days: days, budget_inr: budget })
+          }).then(r => r.json());
+        } catch (err) {
+          alert('Negotiation API failed: ' + err.message);
+          document.getElementById('negLive').style.display = 'none';
+          document.getElementById('negEmpty').style.display = 'block';
+          document.getElementById('launchBtn').disabled = false;
+          document.getElementById('launchBtn').textContent = `⚡ LAUNCH ${CARRIERS.length} AI AGENTS`;
+          return;
+        }
+        if (result.error) {
+          alert('Error: ' + result.error);
+          document.getElementById('negLive').style.display = 'none';
+          document.getElementById('negEmpty').style.display = 'block';
+          document.getElementById('launchBtn').disabled = false;
+          document.getElementById('launchBtn').textContent = `⚡ LAUNCH ${CARRIERS.length} AI AGENTS`;
+          return;
+        }
+
+        // Show live feed from API results
+        for (const neg of result.negotiation) {
+          const c = CARRIERS.find(x => x.id === neg.carrier_id);
+          const color = c ? c.color : '#00d4ff';
+          for (const rd of neg.round_data) {
+            addTick('🤖', 'AI Agent', rd.reasoning || `Counter ₹${rd.ai_offer.toLocaleString()}`, rd.ai_offer, '#00d4ff');
+            addTick((c ? c.name[0] : 'C'), neg.carrier_name, `${rd.sentiment === 'cooperative' ? 'Flexible' : 'Firm'} — ${rd.converged ? '✓ Converged' : '...'}`, rd.carrier_price, color);
+          }
+        }
+
+        await stepDelay(400);
+        markStep(4, 'done'); markStep(5, 'active');
+        addTick('🏆', 'AwardOptimizer', 'Scoring carriers with weighted composite formula...', null, '#10b981');
+        await stepDelay(500);
+        markStep(5, 'done');
+
+        const winner = result.scores.find(s => s.recommended) || result.scores[0];
+        addTick('✅', 'AWARD', `Winner: ${winner.carrier_name} · Score: ${(winner.composite_score * 100).toFixed(1)}%`, winner.final_price, '#10b981');
+
+        await stepDelay(600);
+        document.getElementById('negLive').style.display = 'none';
+
+        // Transform API result → internal format
+        const negResults = result.negotiation.map(n => ({
           carrier_id: n.carrier_id, name: n.carrier_name,
           initQuote: n.initial_quote, final: n.final_price,
           savings: n.savings, channel: n.channel, conv: n.converged,
           rounds: n.round_data.map(rd => ({ r: rd.round, ai: rd.ai_offer, cp: rd.carrier_price, delta: rd.delta, conv: rd.converged, sentiment: rd.sentiment, reasoning: rd.reasoning || '' })),
           bounds: {
             opening: n.round_data[0] ? n.round_data[0].ai_offer : 0,
-            strategy: n.round_data[0] ? (n.round_data[0].reasoning || '').includes('aggressive') ? 'aggressive' : (n.round_data[0].reasoning || '').includes('moderate') ? 'moderate' : 'collaborative' : selectedStrategy,
+            strategy: selectedStrategy === 'auto' ? computeBounds(route.km, kg, days, budget, route.base).strategy : selectedStrategy,
             target: 0, walkaway: budget
           },
           comm_log: n.comm_log
-        };
-      });
-      const scores = result.scores.map(s => ({
-        ...s, carrier_id: s.carrier_id, name: s.carrier_name,
-        initQuote: s.savings_vs_initial + s.final_price, final: s.final_price,
-        savings: s.savings_vs_initial, savingsPct: s.savings_pct,
-        ps: s.price_score, rs: s.reliability_score, perf: s.performance_score, comp: s.composite_score,
-        rec: s.recommended, rank: s.rank,
-        ...(CARRIERS.find(x => x.id === s.carrier_id) || { color: '#00d4ff', persona: 0.45 })
-      }));
+        }));
 
-      showResults(ship, scores, negResults, route);
+        const scores = result.scores.map(s => ({
+          ...s, carrier_id: s.carrier_id, name: s.carrier_name,
+          initQuote: (s.savings_vs_initial || 0) + s.final_price, final: s.final_price,
+          savings: s.savings_vs_initial || 0, savingsPct: s.savings_pct || 0,
+          ps: s.price_score, rs: s.reliability_score, perf: s.performance_score, comp: s.composite_score,
+          rec: s.recommended, rank: s.rank,
+          ...(CARRIERS.find(x => x.id === s.carrier_id) || { color: '#00d4ff', persona: 0.45 })
+        }));
 
-      history.push({ ship, scores, winner: { ...scores[0], rounds: negResults.find(n => n.carrier_id === scores[0].carrier_id)?.rounds || [] } });
-      updateSidebarStats();
-      updateHistoryTable();
-      lastResult = { ship, scores, negResults, route };
-      document.getElementById('awardStatus').className = 'badge badge-green';
-      document.getElementById('awardStatus').textContent = '● DONE';
-      document.getElementById('launchBtn').disabled = false;
-      document.getElementById('launchBtn').textContent = `⚡ LAUNCH ${CARRIERS.length} AI AGENTS`;
-    } catch(err) {
-      document.getElementById('negLive').style.display = 'none';
-      document.getElementById('negEmpty').style.display = 'block';
-      document.getElementById('launchBtn').disabled = false;
-      document.getElementById('launchBtn').textContent = `⚡ LAUNCH ${CARRIERS.length} AI AGENTS`;
-      alert('Error rendering results: ' + err.message);
-      console.error(err);
+        showResults(ship, scores, negResults, route);
+
+        lastResult = { ship, scores, negResults, route };
+        history.push({ ship, scores, winner: { ...scores[0], rounds: negResults.find(n => n.carrier_id === scores[0].carrier_id)?.rounds || [] } });
+        updateSidebarStats();
+        updateHistoryTable();
+        document.getElementById('awardStatus').className = 'badge badge-green';
+        document.getElementById('awardStatus').textContent = '● DONE';
+        document.getElementById('launchBtn').disabled = false;
+        document.getElementById('launchBtn').textContent = `⚡ LAUNCH ${CARRIERS.length} AI AGENTS`;
+      } catch (err) {
+        document.getElementById('negLive').style.display = 'none';
+        document.getElementById('negEmpty').style.display = 'block';
+        document.getElementById('launchBtn').disabled = false;
+        document.getElementById('launchBtn').textContent = `⚡ LAUNCH ${CARRIERS.length} AI AGENTS`;
+        alert('Negotiation error: ' + err.message);
+        console.error(err);
+      }
     }
 
     function markStep(i, state) {
@@ -2430,17 +2429,17 @@
               <span class="badge badge-muted">${CH_ICONS[neg.channel] || ''} ${neg.channel}</span>
             </div>
             ${msgs.map(m => {
-              const isAi = !m.sender || m.sender.includes('ProcureMind') || m.sender.includes('AI');
-              const color = isAi ? 'var(--cyan)' : c2.color;
-              const price = m.price ? `<div style="font-family:var(--fm);font-size:12px;font-weight:700;color:${color};margin-top:4px">₹${Number(m.price).toLocaleString()}</div>` : '';
-              return `<div style="display:flex;justify-content:${isAi ? 'flex-start' : 'flex-end'};margin-bottom:6px">
+            const isAi = !m.sender || m.sender.includes('ProcureMind') || m.sender.includes('AI');
+            const color = isAi ? 'var(--cyan)' : c2.color;
+            const price = m.price ? `<div style="font-family:var(--fm);font-size:12px;font-weight:700;color:${color};margin-top:4px">₹${Number(m.price).toLocaleString()}</div>` : '';
+            return `<div style="display:flex;justify-content:${isAi ? 'flex-start' : 'flex-end'};margin-bottom:6px">
                 <div style="max-width:85%;background:${isAi ? 'rgba(0,212,255,.06)' : c2.color + '0e'};border:1px solid ${isAi ? 'rgba(0,212,255,.2)' : c2.color + '25'};border-radius:${isAi ? '12px 12px 12px 2px' : '12px 12px 2px 12px'};padding:8px 11px">
                   <div style="font-size:9px;font-family:var(--fm);color:${color};margin-bottom:3px">${m.sender}</div>
                   <div style="font-size:11px;line-height:1.5;color:var(--muted)">${m.message || m.text || ''}</div>
                   ${price}
                 </div>
               </div>`;
-            }).join('')}
+          }).join('')}
           </div>`;
         }).join('');
       }
